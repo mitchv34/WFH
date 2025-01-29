@@ -26,6 +26,10 @@ This repository contains the research project studying the effects of work from 
 - [manuscripts/](manuscripts/): Research paper and drafts
   - [drafts/](manuscripts/drafts/): Earlier versions and working drafts
 
+- [notes/](notes/): Research notes and ideas
+  - [model/](notes/model/): Notes on the structural model
+  - [data/](notes/data/): Notes on data collection and processing
+
 - [tests/](tests/): Unit tests for code reliability
 
 - [literature/](literature/): Relevant papers and references

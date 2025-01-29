@@ -1,0 +1,246 @@
+---
+title: "Optimal Work-from-Home Policy Analysis"
+author: "Mitchell Valdes-Bobes"
+format: pdf
+fig-dpi: 320
+jupyter: julia-1.11
+editor:
+    render-on-save: true
+---
+
+## **Model Environment**
+
+### **Key Components**
+
+1. **Firm Productivity**:
+    - A firm’s output depends on the fraction of work done remotely ($\alpha$) and its remote work efficiency ($\psi$).
+    - **Production Function**:
+    $$
+    Y = A \left[ (1 - \alpha) + \alpha (\psi - \psi_0) \right]
+    $$
+    - $A$: Total factor productivity (baseline productivity).
+    - $\alpha$: Fraction of work done remotely ($\alpha \in [0,1]$).
+    - $\psi$: Efficiency of remote work ($\psi \in [0,1]$).
+    - $\psi_0$: **Minimum efficiency threshold** for remote work to be viable ($\psi_0 \in [0,1]$).
+
+```{julia}
+#| label: fig-productivity
+#| fig-cap: "Firm productivity as a function of remote work"
+#| echo: false
+#| warning: false
+
+using CairoMakie, LaTeXStrings
+
+# Parameters
+A = 1.0        # Baseline productivity
+α = 0:0.01:1   # Fraction of work done remotely
+ψ_values = [0.2, 0.8]  # Different remote work efficiencies
+ψ₀_values = [0.3, 0.7] # Different baseline remote productivity losses
+
+# Create a new figure
+fig = Figure(size = 5 .* (800, 600), fonts = (; regular="Computer Modern"))
+
+# Production function
+production(α, ψ, ψ₀) = A * ((1 .- α) .+ α .* (ψ .- ψ₀)/(1 - ψ₀))
+
+# Different linestyles for different ψ₀ values
+linestyles = [:solid, :dash]
+# Different colors for different ψ values
+colors = [:blue, :red]
+
+# Create an axis
+ax = Axis(fig[1, 1], 
+    xlabel = L"\alpha \text{ (Fraction of Remote Work)}", 
+    ylabel = L"Y \text{ (Firm Output)}", 
+    xlabelsize = 16, ylabelsize = 16, 
+    xgridstyle = :dash, ygridstyle = :dash,
+    xtickalign = 1, xticksize = 7, ytickalign = 1, yticksize = 7)
+
+# Plot the production function for different ψ₀ and ψ values
+for (i, ψ) in enumerate(ψ_values)
+    for (j, ψ₀) in enumerate(ψ₀_values)
+        lines!(ax, α, production(α, ψ, ψ₀), 
+            label=latexstring("\$\\psi = $(ψ), \\psi_0 = $(ψ₀)\$"), 
+            linewidth=3, linestyle=linestyles[j], color=colors[i])
+    end
+end
+
+# Improve legend placement
+axislegend(ax; position=:lb, nbanks=1, framecolor=(:grey, 0.5), labelsize=14, padding=(5, 5, 5, 5))
+hidespines!(ax,:t,:r)
+# Add title
+ax.title = L"\text{Firm Productivity as a Function of Remote Work}"
+ax.titlesize = 20
+
+# Display the plot
+fig
+
+
+```
+
+2. **Worker Utility**:
+    - Workers receive utility $x = w + \alpha^\chi$, where:
+        - $w$: Wage paid by the firm.
+        - $\chi$: Parameter capturing worker preference for remote work ($\chi > 0$).
+
+3. **Firm’s Problem**:
+    - The firm chooses $\alpha$ to **maximize profit**:
+    $$
+    \pi = Y - w = A\left[(1 - \alpha) + \alpha(\psi - \psi_0)\right] - (x - \alpha^\chi).
+    $$
+    - Subject to providing a fixed utility $x$ to the worker.
+
+---
+
+## **Derivation of Optimal Remote Work Fraction ($\alpha^*$)**
+
+### **Step 1: Profit Maximization**
+
+Substitute $w = x - \alpha^\chi$ into the profit function:
+$$
+\pi = A\left[(1 - \alpha) + \alpha(\psi - \psi_0)\right] - x + \alpha^\chi.
+$$
+
+### **Step 2: First-Order Condition (FOC)**
+
+Take the derivative of $\pi$ with respect to $\alpha$ and set to zero:
+$$
+\frac{\partial \pi}{\partial \alpha} = -A(1 - (\psi - \psi_0)) + \chi \alpha^{\chi - 1} = 0.
+$$
+Rearranging:
+$$
+\chi \alpha^{\chi - 1} = A\left(1 - (\psi - \psi_0)\right).
+$$
+
+### **Step 3: Solve for $\alpha^*$**
+
+#### **Case 1: $\psi \leq \psi_0$**
+
+- Remote work is harmful or neutral ($\psi - \psi_0 \leq 0$).
+- **Optimal Policy**: $\alpha^* = 0$ (no remote work).
+
+#### **Case 2: $\psi > \psi_0$**
+
+- Remote work is viable ($\psi_{\text{net}} = \psi - \psi_0 > 0$).
+- **Interior Solution ($\chi < 1$)**:
+    $$
+    \alpha^* = \min\left\{\left(\frac{\chi}{A\left(1 - \psi_{\text{net}}\right)}\right)^{\frac{1}{1 - \chi}},\ 1\right\}.
+    $$
+- Example: If $\chi = 0.5$, $A = 2$, $\psi_0 = 0.3$, and $\psi = 0.4$ ($\psi_{\text{net}} = 0.1$):
+    $$
+    \alpha^* = \left(\frac{0.5}{2(1 - 0.1)}\right)^2 \approx 0.077.
+    $$
+
+- **Corner Solutions ($\chi \geq 1$)**:
+  - If $\chi \geq A\left(1 - \psi_{\text{net}}\right)$: $\alpha^* = 1$ (full remote work).
+  - Otherwise: $\alpha^* = 0$.
+
+---
+
+```{julia}
+#| label: fig-optimal-alpha
+#| fig-cap: "Optimal remote work fraction as a function of remote work efficiency"
+#| echo: false
+#| warning: false
+
+
+
+# Parameters
+A = 2.0        # Baseline productivity
+ψ₀ = 0.3       # Minimum efficiency threshold for remote work
+ψ_values = 0.1:0.001:1.0  # Different values of psi (remote work efficiency)
+χ_values = [0.4, 0.9]  # Different values of the parameter chi (worker preference for remote work)
+
+# Function to compute optimal alpha
+function optimal_alpha(χ, ψ, ψ₀, A)
+    ψ_net = ψ - ψ₀
+    if ψ_net <= 0
+        return 0.0
+    elseif χ >= 1
+        if χ >= A * (1 - ψ_net)
+            return 1.0
+        else
+            return 0.0
+        end
+    else
+        alpha_star = (χ / (A * (1 - ψ_net)))^(1 / (1 - χ))
+        return min(alpha_star, 1.0)
+    end
+end
+
+# Create a new figure
+fig = Figure(size = (800, 600), fonts = (; regular="Computer Modern"))
+
+# Create an axis
+ax = Axis(fig[1, 1], 
+    xlabel = L"\psi \text{ (Remote Work Efficiency)}", 
+    ylabel = L"\alpha^*", 
+    xlabelsize = 16, ylabelsize = 16, 
+    xgridstyle = :dash, ygridstyle = :dash,
+    xtickalign = 1, xticksize = 7, ytickalign = 1, yticksize = 7)
+
+# Plot the production function for different ψ₀ and ψ values
+j = 1
+ψ₀ = ψ₀_values[j]
+for (i, χ) in enumerate(χ_values)
+    optimal_alphas = [optimal_alpha(χ, ψ, ψ₀, A) for ψ in ψ_values]
+    lines!(ax, ψ_values, optimal_alphas, 
+        label=latexstring("\$\\chi = $(χ)\$"), 
+        linewidth=3, linestyle=linestyles[j], color=colors[i])
+    
+end
+
+vlines!(ψ₀, color = :black, linewidth = 2, linestyle = :dash)
+
+hidespines!(ax,:t,:r)
+
+# Improve legend placement
+axislegend(ax; position = :lt, nbanks = 1, framecolor = (:grey, 0.5), labelsize = 14, padding = (5, 5, 5, 5))
+
+# Add title
+ax.title = L"\text{Optimal Remote Work}"
+ax.titlesize = 24
+# Display the plot
+fig
+```
+
+## **Interpretation**
+
+### **Role of $\psi_0$**
+
+- $\psi_0$ acts as a **viability threshold**: 
+  - Firms with $\psi \leq \psi_0$ avoid remote work entirely.
+  - Firms with $\psi > \psi_0$ face a trade-off between productivity loss and wage savings.
+
+### **Worker Preferences ($\chi$)**
+
+- **Low $\chi$ ($\chi < 1$)**:
+  - Workers value remote work highly (slow diminishing returns to $\alpha$).
+  - Firms offer partial remote work ($\alpha^* > 0$) even for modest $\psi$.
+- **High $\chi$ ($\chi \geq 1$)**:
+  - Workers prioritize wages over remote work (rapid diminishing returns to $\alpha$).
+  - Firms adopt remote work ($\alpha^* = 1$) only if $\psi_{\text{net}}$ is sufficiently high.
+
+---
+
+## **Policy Implications**
+
+1. **Adoption of Remote Work**:
+    - Firms with $\psi > \psi_0$ adopt remote work, but the extent depends on $\chi$ and $\psi_{\text{net}}$.
+    - Example: A tech firm ($\psi = 0.9$, $\psi_0 = 0.2$) with $\chi = 0.5$ chooses $\alpha^* \approx 0.69$, while a manufacturing firm ($\psi = 0.25$, $\psi_0 = 0.3$) sets $\alpha^* = 0$.
+
+2. **Productivity vs. Wage Costs**:
+    - High-$\psi$ firms leverage remote work to reduce wages without significant productivity loss.
+    - Low-$\psi$ firms avoid remote work to preserve output.
+
+---
+
+## **Summary**
+
+The optimal remote work fraction $\alpha^*$ depends critically on:
+
+1. **Remote efficiency threshold ($\psi_0$)**.
+2. **Worker preference for remote work ($\chi$)**.
+3. **Firm-specific remote efficiency ($\psi$)**.
+
+This model explains why firms in certain industries (e.g., tech) embrace remote work, while others (e.g., manufacturing) avoid it, even within the same economy.
