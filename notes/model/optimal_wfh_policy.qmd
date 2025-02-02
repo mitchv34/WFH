@@ -90,7 +90,7 @@ fig
     $$
     - Subject to providing a fixed utility $x$ to the worker.
 
----
+
 
 ## **Derivation of Optimal Remote Work Fraction ($\alpha^*$)**
 
@@ -135,7 +135,7 @@ $$
   - If $\chi \geq A\left(1 - \psi_{\text{net}}\right)$: $\alpha^* = 1$ (full remote work).
   - Otherwise: $\alpha^* = 0$.
 
----
+
 
 ```{julia}
 #| label: fig-optimal-alpha
@@ -221,7 +221,7 @@ fig
   - Workers prioritize wages over remote work (rapid diminishing returns to $\alpha$).
   - Firms adopt remote work ($\alpha^* = 1$) only if $\psi_{\text{net}}$ is sufficiently high.
 
----
+
 
 ## **Policy Implications**
 
@@ -233,7 +233,7 @@ fig
     - High-$\psi$ firms leverage remote work to reduce wages without significant productivity loss.
     - Low-$\psi$ firms avoid remote work to preserve output.
 
----
+
 
 ## **Summary**
 
