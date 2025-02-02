@@ -5,16 +5,22 @@ Primitives:
   delta_bar: 0.012  # job destruction rate
   sigma: 0.0        # risk aversion parameter
   # Production function parameters
-  alpha: 1.0        # utility function parameter
-  A: 1.0            # productivity parameter
+  A: 1.0            # Total factor productivity 
+  psi_0: 0.3        # Minimum efficiency threshold for WFH
   
   # Utility function parameters
-  chi: 2.0          # utility function parameter
+  ## Remote work productivity grid
+  chi: 0.9          # utility function parameter
   b_prob: 0.1       # probability of losing unemployment benefits
-  n_W: 100          # number of wage grid points
-  n_b: 100          # number of benefit grid points
-  W_max: 1.0        # Maximum wage
-  W_min: 0.0        # Minimum wage
+  # Grid parameters
+  n_psi: 101        # Number of ψ grid points [NEW]
+  psi_min: 0.0      # minimum psi
+  psi_max: 1.0      # maximum psi
+  ## Utility grid
+  n_x: 100          # number of x grid points
+  x_min: 0.1        # minimum x
+  x_max: 5.0        # maximum x
+
 
 Simulation:
   N: 6000           # Number of agents

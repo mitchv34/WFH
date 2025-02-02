@@ -2,45 +2,63 @@ using CairoMakie, LaTeXStrings
 
 # Parameters
 A = 1.0        # Baseline productivity
-α = 0:0.01:1   # Fraction of work done remotely
-ψ_values = [0.2, 0.8]  # Different remote work efficiencies
-ψ₀_values = [0.3, 0.7] # Different ψ₀ values
+c = 1.0        # Disutility scaling factor
+χ = 1.1        # Curvature parameter for disutility
+ψ₀ = 0.5       # Threshold remote efficiency
+γ = 1.0        # Non-linearity parameter for remote work productivity
+ψ_values = 0:0.01:2  # Range of remote efficiency values
 
-# Create a new figure
-fig = Figure(resolution = (800, 600), fonts = (; regular="Computer Modern"))
-
-# Production function
-production(α, ψ, ψ₀) = A * ((1 .- α) .+ α .* (ψ .- ψ₀))
-
-# Different linestyles for different ψ₀ values
-linestyles = [:solid, :dash]
-# Different colors for different ψ values
-colors = [:blue, :red]
-
-# Create an axis
-ax = Axis(fig[1, 1], 
-    xlabel = L"\alpha \text{ (Fraction of Remote Work)}", 
-    ylabel = L"Y \text{ (Firm Output)}", 
-    xlabelsize = 22, ylabelsize = 22, 
-    xgridstyle = :dash, ygridstyle = :dash,
-    xtickalign = 1, xticksize = 10, ytickalign = 1, yticksize = 10)
-
-# Plot the production function for different ψ₀ and ψ values
-for (i, ψ) in enumerate(ψ_values)
-    for (j, ψ₀) in enumerate(ψ₀_values)
-        lines!(ax, α, production(α, ψ, ψ₀), 
-            label=latexstring("\\phi = $(ψ), \\phi_0 = $(ψ₀)"), 
-            linewidth=2, linestyle=linestyles[j], color=colors[i])
+# Optimal WFH function (α*(ψ))
+function optimal_wfh(ψ, A, c, χ, ψ₀, γ, ψ_c) 
+    # Compute critical thresholds
+    ψ_bottom = ψ₀ + (1 - (c * χ ) / A)^(1/γ)
+    ψ_top = ψ₀ + 1
+    # Compute optimal WFH
+    if ψ <= ψ_bottom
+        return 0
+    elseif ψ > ψ_top
+        return 1
+    else
+        return 1 - ( (c * χ )/(A * (1 - (ψ - ψ₀)^γ )) )^(1/(1-χ))
     end
 end
 
-# Add legend and customize
-axislegend(ax; position=:rt, nbanks=2, framecolor=(:grey, 0.5), labelsize=14)
+# Create a new figure with more space for the legend
+fig = Figure(size = (800, 700), fonts = (; regular="Computer Modern"))
+
+
+
+ax = Axis(fig[1, 1], 
+xlabel = L"\psi \text{ (Remote Work Efficiency)}", 
+ylabel = L"\alpha^*(\psi) \text{ (Optimal WFH Fraction)}", 
+xlabelsize = 16, ylabelsize = 16, 
+xgridstyle = :dash, ygridstyle = :dash,
+xtickalign = 1, xticksize = 7, ytickalign = 1, yticksize = 7)
+
+# Add vertical lines for critical thresholds
+vlines!(ax, [ψ₀, ψ₀ + 1], color = :red, linestyle = :dash, linewidth = 2)
+# Plot optimal WFH as a function of ψ
+lines!(ax, ψ_values, optimal_wfh.(ψ_values, A, c, χ, ψ₀, γ, ψ₀),
+    label = latexstring("\$A = $A, c = $c, \\chi = $χ, \\psi_0 = $ψ₀, \\gamma = $γ\$"),
+    linewidth = 3, color = :blue)
+vlines!(ax, [ ψ₀ + (1 - (c * χ ) / A)^(1/γ)], color = :blue, linestyle = :dash, linewidth = 2, 
+    label = latexstring("Critical Threshold for \$\\alpha^* > 0\$"))
+
+# χ = 1.4
+# # Plot optimal WFH as a function of ψ
+# lines!(ax, ψ_values, optimal_wfh.(ψ_values, A, c, χ, ψ₀, γ, ψ₀),
+#     label = latexstring("\$A = $A, c = $c, \\chi = $χ, \\psi_0 = $ψ₀, \\gamma = $γ\$"),
+#     linewidth = 3, color = :green)
+# vlines!(ax, [ ψ₀ + (1 - (c * χ ) / A)^(1/γ)], color = :green, linestyle = :dash, linewidth = 2, 
+# label = latexstring("Critical Threshold for \$\\alpha^* > 0\$"))
+
 
 # Add title
-ax.title = L"\text{Firm Productivity as a Function of Remote Work}"
-ax.titlesize = 24
+ax.title = L"\text{Optimal WFH Fraction as a Function of Remote Efficiency}"
+ax.titlesize = 20
 
+# Adjust the legend to be placed outside and below the plot
+axislegend(ax; position = :cb, nbanks = 1, framecolor = (:grey, 0.5), labelsize = 14, padding = (5, 5, 5, 5), alignment = :center)
 
 # Display the plot
 fig
