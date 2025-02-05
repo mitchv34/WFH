@@ -1,7 +1,7 @@
 # Folders to ignore
 .vscode/
 .history/
-
+data/
 
 
 # Byte-compiled / optimized / DLL files
