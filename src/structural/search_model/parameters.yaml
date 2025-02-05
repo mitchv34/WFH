@@ -6,16 +6,17 @@ Primitives:
   sigma: 0.0        # risk aversion parameter
   # Production function parameters
   A: 1.0            # Total factor productivity 
-  psi_0: 0.3        # Minimum efficiency threshold for WFH
+  psi_0: 0.5        # Minimum efficiency threshold for WFH
   
   # Utility function parameters
-  ## Remote work productivity grid
-  chi: 0.9          # utility function parameter
+  chi: 1.1          # utility function parameter
+  c: 1.1            # Scaling parameter for utility function
   b_prob: 0.1       # probability of losing unemployment benefits
   # Grid parameters
+  ## Remote work productivity grid
   n_psi: 101        # Number of ψ grid points [NEW]
   psi_min: 0.0      # minimum psi
-  psi_max: 1.0      # maximum psi
+  psi_max: 2.0      # maximum psi
   ## Utility grid
   n_x: 100          # number of x grid points
   x_min: 0.1        # minimum x

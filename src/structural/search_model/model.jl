@@ -14,6 +14,7 @@ using Term
 
     A::Float64 = 1.0                # Total factor productivity 
     ψ₀::Float64 = 0.3               # Minimum efficiency threshold
+    c::Float64 = 1.0                # Disutility scaling factor
     χ::Float64 = 0.5                # Remote work preference 
     b_prob ::Float64 = 0.1          # probability of losing unemployment benefits
     
@@ -50,6 +51,7 @@ function getPrimitives(parameters_path::String)
     A         = parameters["A"]
     ψ₀        = parameters["psi_0"]
     χ         = parameters["chi"]
+    c         = parameters["c"]
     b_prob    = parameters["b_prob"]
     
     # Grid parameters
@@ -77,7 +79,7 @@ function getPrimitives(parameters_path::String)
     u  = (w, α) -> w .+ α.^χ  # Utility function
 
     # Return the updated Primitives struct
-    return Primitives(β, γ, κ, δ_bar, σ, A, ψ₀, χ, b_prob, n_ψ, ψ_min, ψ_max, ψ_grid, 
+    return Primitives(β, γ, κ, δ_bar, σ, A, ψ₀, χ, c, b_prob, n_ψ, ψ_min, ψ_max, ψ_grid, 
                         n_x, x_min, x_max, x_grid, b_grid, p, Y, u)
 end
 
@@ -107,32 +109,49 @@ function initializeModel(parameters_path::String)
     return prim, Results(J, θ, α_policy, w_policy, δ_grid, W, U, x_policy)
 end
 
+# Optimal WFH function (α*(ψ))
+function optimal_wfh(ψ, A, c, χ, ψ₀, γ, ψ_c) 
+    # Compute critical thresholds
+    ψ_bottom = ψ₀ + (1 - (c * χ ) / A)^(1/γ)
+    ψ_top = ψ₀ + 1
+    # Compute optimal WFH
+    if ψ <= ψ_bottom
+        return 0
+    elseif ψ > ψ_top
+        return 1
+    else
+        return 1 - ( (c * χ )/(A * (1 - (ψ - ψ₀)^γ )) )^(1/(1-χ))
+    end
+end
+
+
 function compute_optimal_α!(prim::Primitives, res::Results)
-    @unpack χ, ψ_grid, ψ₀, A, n_x, n_ψ, x_grid, δ_bar, Y = prim
+    @unpack χ,c, ψ_grid, ψ₀, A, n_x, n_ψ, x_grid, δ_bar, Y = prim
     
     α_pol = zeros(n_ψ)
     w_pol = zeros(n_ψ, n_x)
     δ_grid = δ_bar .* ones(n_ψ, n_x)
     
+    # Compute critical thresholds
+    # ψ_bottom is the threshold below which WFH is not feasible
+    ψ_bottom = ψ₀ + (1 - (c * χ ) / A)
+    # ψ_top is the threshold above which full-time WFH is optimal
+    ψ_top = ψ₀ + 1
 
-    for (i, ψ_net) in enumerate(ψ_grid .- ψ₀)
-        if ψ_net <= 0
+    for (i, ψ) in enumerate(ψ_grid)
+        if ψ <= ψ_bottom
             α_pol[i] =  0.0
+        elseif ψ > ψ_top
+            α_pol[i] = 1.0
         else
-            numerator = χ
-            denominator = A * (1 - ψ_net)
-            
-            if χ >= 1
-                α_pol[i] =  (numerator >= denominator) ? 1.0 : 0.0
-            else
-                α_candidate = (numerator/denominator)^(1/(1 - χ))
-                α_pol[i] = clamp(α_candidate, 0.0, 1.0)
-            end
+            α_pol[i] = 1 - ( (c * χ )/(A * (1 - (ψ - ψ₀) )) )^(1/(1-χ))
         end
+        # @show ψ, ψ_bottom
+        # @show α_pol[i]
         for j in 1:n_x
             w_pol[i, j] = x_grid[j] - α_pol[i]^χ
             if i == 1
-            @show w_pol[i, j]
+            # @show w_pol[i, j]
             end
             # If firms's profit is negative, set δ_grid to 0 (job is not feasible)
             δ_grid[i, j] = ( Y(α_pol[i], ψ_grid[i]) - w_pol[i, j] > 0 ) ? δ_bar : 0.0
