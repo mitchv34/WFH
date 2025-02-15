@@ -3,6 +3,8 @@
 .history/
 data/
 
+# API keys
+open_ai_api_key
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
