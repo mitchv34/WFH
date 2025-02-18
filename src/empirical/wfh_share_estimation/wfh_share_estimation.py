@@ -617,20 +617,28 @@ class ModelPipeline:
         self.regressor = self.regressor_model
         self.regressor.fit(X_nonzero, y_nonzero_norm)
 
-    def evaluate(self, verbose = True):
+    def evaluate(self, include_test=False, verbose = True):
         """
         Evaluates the two-stage model using the test split from the data object.
         """
         
         if self.suppress_messages:
             verbose = False
+        if include_test:
+            X_test = self.data.labeled_data.drop(columns=["ESTIMATE_WFH_ABLE"]).copy()
+            y_test = self.data.labeled_data["ESTIMATE_WFH_ABLE"].copy()
+            iz_test = (y_test == 0).astype(int)
+        else:
+            X_test = self.data.X_test
+            y_test = self.data.y_test
+            iz_test = self.data.iz_test
 
         # Stage 1: Use the classifier to predict zeros.
-        zero_probs = self.calibrated_classifier.predict_proba(self.data.X_test)[:, 1]
+        zero_probs = self.calibrated_classifier.predict_proba(X_test)[:, 1]
         predicted_zero = (zero_probs > self.zero_threshold).astype(int)
         
         # Stage 2: For non-zero cases, use the regressor.
-        X_non_zero = self.data.X_test.loc[predicted_zero != 1]
+        X_non_zero = X_test.loc[predicted_zero != 1]
         if not X_non_zero.empty:
             y_nz_pred_norm = self.regressor.predict(X_non_zero)
             if self.normalize == "logit":
@@ -641,24 +649,27 @@ class ModelPipeline:
         else:
             y_nz_pred = np.array([])
         
-        final_pred = np.zeros(len(self.data.X_test))
+        final_pred = np.zeros(len(X_test))
         final_pred[predicted_zero == 1] = 0
         final_pred[predicted_zero != 1] = y_nz_pred
         
         # Evaluation metrics.
-        f1 = f1_score(self.data.iz_test, predicted_zero)
-        non_zero_mask_test = self.data.y_test != 0
-        mae_non_zero = mean_absolute_error(self.data.y_test[non_zero_mask_test], final_pred[non_zero_mask_test])
-        mae = mean_absolute_error(self.data.y_test, final_pred)
+        ## Zero-Class F1: F1 score for the binary classifier.
+        f1 = f1_score(iz_test, predicted_zero)
+        non_zero_mask_test = y_test != 0
+        ## Non-Zero MAE: Mean absolute error for non-zero estimates.
+        mae_non_zero = mean_absolute_error(y_test[non_zero_mask_test], final_pred[non_zero_mask_test])
+        ## Overall MAE: Mean absolute error for all estimates.
+        mae = mean_absolute_error(y_test, final_pred)
+        ## Correlation: Pearson correlation between actual and predicted values. 
+        corr = np.corrcoef(y_test, final_pred)[0, 1]
+        ## Correlation (Non-Zero): Pearson correlation for non-zero estimates only.
+        corr_non_zero = np.corrcoef(y_test[non_zero_mask_test], final_pred[non_zero_mask_test])[0, 1]
         if verbose:
             print("Zero-Class F1:", f1)
-            print("Non-Zero MAE:", mae_non_zero)
-            print("Overall MAE:", mae)
+            print("Non-Zero MAE:", mae_non_zero, "Correlation (Non-Zero):", corr_non_zero)
+            print("Overall MAE:", mae, "Correlation:", corr)
 
-        # Compute correlation between actual and predicted values.
-        corr = np.corrcoef(self.data.y_test, final_pred)[0, 1]
-        # Compute correlation between actual and predicted values (non-zero only).
-        corr_non_zero = np.corrcoef(self.data.y_test[non_zero_mask_test], final_pred[non_zero_mask_test])[0, 1]
 
         # Save the scores for later use.
         self.scores = {
@@ -670,7 +681,7 @@ class ModelPipeline:
         }
         
         # Plot actual vs. predicted.
-        results_df = self.data.y_test.to_frame().assign(Predicted=final_pred)
+        results_df = y_test.to_frame().assign(Predicted=final_pred)
         results_df["Actual_Zero"] = results_df["ESTIMATE_WFH_ABLE"].apply(lambda x: 1 if x > 0 else 0)
         results_df["Predicted_Zero"] = results_df["Predicted"].apply(lambda x: 1 if x > 0 else 0)
         results_df['Correct_Class'] = results_df["Actual_Zero"] == results_df["Predicted_Zero"]
