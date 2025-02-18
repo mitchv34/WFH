@@ -1,0 +1,18 @@
+\begin{table}[htbp]\centering
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\caption{Wage = f(WFH, X, FE)}
+\begin{tabular}{l*{5}{c}}
+\hline\hline
+                    &\multicolumn{1}{c}{(1)}         &\multicolumn{1}{c}{(2)}         &\multicolumn{1}{c}{(3)}         &\multicolumn{1}{c}{(4)}         &\multicolumn{1}{c}{(5)}         \\
+\hline
+1(WFH)              &       12.44\sym{***}&       7.702\sym{***}&       5.998\sym{***}&       5.114\sym{***}&       3.651\sym{***}\\
+                    &    (0.0530)         &    (0.0525)         &    (0.0496)         &    (0.0494)         &    (0.0473)         \\
+\hline
+N                   &     9712293         &     9712293         &     9712293         &     9712293         &     9712292         \\
+r2                  &      0.0711         &       0.153         &       0.284         &       0.304         &       0.361         \\
+\hline\hline
+\multicolumn{6}{l}{\footnotesize Standard errors in parentheses}\\
+\multicolumn{6}{l}{\footnotesize Occupation: , yvar: wage, xvar: wfh\_cat, cluster: }\\
+\multicolumn{6}{l}{\footnotesize \sym{*} \(p<0.1\), \sym{**} \(p<0.05\), \sym{***} \(p<0.001\)}\\
+\end{tabular}
+\end{table}

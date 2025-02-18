@@ -1,10 +1,15 @@
 # %%
 import pandas as pd
 import numpy as np
+import os
 
-DATA_FOLDER = './data/aux_and_croswalks/'
 
-puma10_20 = pd.read_csv(DATA_FOLDER + 'puma2010-to-puma2020.csv', 
+# Base paths
+BASE_DIR = '../../../../'
+DATA_DIR = os.path.join(BASE_DIR, 'data', 'aux_and_croswalks')
+
+
+puma10_20 = pd.read_csv(os.path.join(DATA_DIR, 'puma2010-to-puma2020.csv'), 
                         usecols = ['state', 'puma12', 'puma22', 'afact'])
 # Drop the first row
 puma10_20 = puma10_20.drop(0)
@@ -23,8 +28,10 @@ puma10_20 = puma10_20.drop(columns=['state', 'puma12', 'puma22'])
 puma10_20 = puma10_20.sort_values('afact', ascending=False).drop_duplicates(subset='state_puma_12')
 # Subset the data to only keep where the PUMA codes are different
 puma10_20 = puma10_20[puma10_20['state_puma_12'] != puma10_20['state_puma_22']]
+# %%
 
-puma20_CBSA = pd.read_csv(DATA_FOLDER + 'geocorr2022_2421106844.csv', encoding='latin1', 
+puma20_CBSA = pd.read_csv(  os.path.join(DATA_DIR,  'geocorr2022_2421106844.csv'), 
+                            encoding='latin1', 
                             usecols = ['state', 'puma22', 'cbsa20', 'cbsatype20', 'CBSAName20', 'afact'])
 # Drop the first row
 puma20_CBSA = puma20_CBSA.drop(0)
@@ -42,7 +49,7 @@ puma20_CBSA = puma20_CBSA.sort_values('afact', ascending=False).drop_duplicates(
 # Add the PUMA_12 codes to the data assign to the corresponding CBSA code in 2020
 codes_12, codes_22 = puma10_20['state_puma_12'].to_list(), puma10_20['state_puma_22'].to_list()
 
-
+# %%
 afact = np.nan
 new_data = {
     'cbsa20': [],
@@ -68,8 +75,10 @@ for i in range(len(codes_12)):
 
 
 puma_CBSA = pd.concat([puma20_CBSA, pd.DataFrame(new_data)], axis=0)
-
+# %%
 # Save the crosswalk to a csv file drop the index and the afact column
-puma_CBSA.drop(columns=['afact']).to_csv(DATA_FOLDER + 'puma_to_cbsa.csv', index=False)
+puma_CBSA.drop(columns=['afact']).to_csv(
+    os.path.join(DATA_DIR, 'puma_to_cbsa.csv'),
+    index=False)
 
 # %%
