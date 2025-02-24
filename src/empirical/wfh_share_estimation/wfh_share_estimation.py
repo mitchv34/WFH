@@ -16,11 +16,13 @@ import seaborn as sns
 
 
 # Importing machine learning libraries from scikit-learn
+from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, mean_absolute_error
+from sklearn.metrics import f1_score, mean_absolute_error, r2_score
 from sklearn.inspection import permutation_importance
+
 
 #*=========================================================================================
 #* DEFAULTS AND CONSTANTS
@@ -172,7 +174,13 @@ class DataLoader:
         ors_data = pd.read_csv(ors_path)
         ors_data.rename(columns={'SOC_2018_CODE': 'ONET_SOC_CODE', 'ESTIMATE': 'ESTIMATE_WFH_ABLE'}, inplace=True)
         ors_data['ONET_SOC_CODE'] = ors_data['ONET_SOC_CODE'] + '.00'
-        ors_data['ESTIMATE_WFH_ABLE'] = ors_data['ESTIMATE_WFH_ABLE'] / 100
+        #! Scale the estimate to be between 0 and 1
+        #TODO: Check this!
+        # ors_data['ESTIMATE_WFH_ABLE'] = ors_data['ESTIMATE_WFH_ABLE'] / 100
+        ors_data['ESTIMATE_WFH_ABLE'] = (ors_data['ESTIMATE_WFH_ABLE'] - ors_data['ESTIMATE_WFH_ABLE'].min()) / (ors_data['ESTIMATE_WFH_ABLE'].max() - ors_data['ESTIMATE_WFH_ABLE'].min())
+        # # Subtract a very small number so that the logit transformation works
+        # TODO: This should probably be done in the logit transformation function
+        ors_data.loc[ors_data.ESTIMATE_WFH_ABLE == 1, 'ESTIMATE_WFH_ABLE'] = 1 - 1e-10
         return ors_data
 
 # %%
@@ -453,6 +461,7 @@ class DataStore:
         # fallback to a simple random split using the provided test_size.
         if len(oob_indices) == 0:
             from sklearn.model_selection import train_test_split
+
             bootstrap_sample, oob_sample = train_test_split(
                 self.labeled_data,
                 test_size=self.Params['test_size'],
@@ -524,59 +533,54 @@ class ModelPipeline:
     
     Attributes:
         data (DataStore): The data container instance.
-        classifier_model: The base classifier (default: RandomForestClassifier).
-        regressor_model: The base regressor (default: RandomForestRegressor).
+        classifier_model: The base classifier.
+        regressor_model: The base regressor.
+        classifier_scaler: Scaler (or transformer) for classifier features.
+        regressor_scaler: Scaler (or transformer) for regressor features.
+        normalize (str): Method of normalization ("logit" or other).
         zero_threshold (float): Threshold to decide when a prediction is zero.
+        random_state (int): Seed for reproducibility.
+        suppress_messages (bool): If True, suppress printing messages.
     """
-    def __init__(self, 
+    def __init__(
+                self, 
                 data: DataStore, 
                 classifier_model=None, 
-                regressor_model=None, 
+                regressor_model=None,
+                classifier_scaler=None,
+                regressor_scaler=None,
                 normalize="logit",
                 zero_threshold=0.8,
                 random_state=42,
                 suppress_messages=False
                 ):
+        
         self.data = data  
         self.zero_threshold = zero_threshold
         self.normalize = normalize
         self.suppress_messages = suppress_messages
         
-        # if classifier_model is not None:
-        #     if hasattr(classifier_model, "set_params"):
-        #         classifier_model.set_params(random_state=random_state)
-        #     self.classifier_model = classifier_model
-        # else:
-        #     self.classifier_model = RandomForestClassifier(random_state=random_state)
-        
+        # Set up default models if not provided.
         if classifier_model is None:
             self.classifier_model = RandomForestClassifier(random_state=random_state)
         else:
             self.classifier_model = classifier_model
 
-        # if regressor_model is not None:
-        #     # try:
-        #     #     if hasattr(regressor_model, "set_params"):
-        #     #         # Note: Ridge does not have a random_state parameter, so this may be skipped
-        #     #         regressor_model.set_params(random_state=random_state)
-        #     # except Warning:
-        #     #     print("Regressor model does not have a random_state parameter.")
-        #     self.regressor_model = regressor_model
-        # else:
-        #     self.regressor_model = RandomForestRegressor(random_state=random_state)
-        
         if regressor_model is None:
             self.regressor_model = RandomForestRegressor(random_state=random_state)
         else:
             self.regressor_model = regressor_model
 
+        # Set the scalers; if None, no scaling is applied (which suits tree-based models).
+        self.classifier_scaler = classifier_scaler  # e.g., StandardScaler(), or None for trees
+        self.regressor_scaler = regressor_scaler    # e.g., StandardScaler(), or None for trees
+
         self.calibrated_classifier = None  # Calibrated version of the classifier
-        self.classifier = None  # To store the classifier
-        self.regressor = None  # To store the regressor
-        self.train_data = None  # To store training splits for later evaluation
+        self.classifier = None             # To store the classifier (or pipeline)
+        self.regressor = None              # To store the regressor (or pipeline)
+        self.train_data = None             # To store training splits for later evaluation
 
         self.plot_manager = PlotManager()  # Instance of PlotManager
-
 
     def train(self, include_test=False):
         """
@@ -584,44 +588,56 @@ class ModelPipeline:
             1. A classifier to detect zero estimates.
             2. A regressor (trained on logit-transformed non-zero data) to predict non-zero values.
         """
-    
-        # Train the classifier
-        self.classifier = self.classifier_model
+        # Prepare training data for classifier.
         if include_test:
-            # Train on all labeled data
             X_train = self.data.labeled_data.drop(columns=["ESTIMATE_WFH_ABLE"])
             y_train = self.data.labeled_data["ESTIMATE_WFH_ABLE"]
             iz_train = (y_train == 0).astype(int)
         else:
-            # Train on the training split
             X_train = self.data.X_train
             y_train = self.data.y_train
             iz_train = self.data.iz_train
 
-        self.classifier.fit(X_train, iz_train)
-        # Calibrate the classifier for better probability estimates.
-        # self.calibrated_classifier = CalibratedClassifierCV(self.classifier, method="isotonic", cv=3)
-        # self.calibrated_classifier.fit(self.data.X_train, self.data.iz_train)
-        self.calibrated_classifier = self.classifier
+        # Build classifier pipeline: include scaler if provided.
+        if self.classifier_scaler is not None:
+            self.classifier = Pipeline([
+                ('scaler', self.classifier_scaler),
+                ('classifier', self.classifier_model)
+            ])
+        else:
+            self.classifier = self.classifier_model
         
+        self.classifier.fit(X_train, iz_train)
+        # Optionally, calibrate the classifier.
+        # self.calibrated_classifier = CalibratedClassifierCV(self.classifier, method="isotonic", cv=3)
+        # self.calibrated_classifier.fit(X_train, iz_train)
+        self.calibrated_classifier = self.classifier
+
         # Train the regressor on non-zero data only.
         X_nonzero = self.data.X_train[self.data.iz_train != 1]
         y_nonzero = self.data.y_train[self.data.iz_train != 1]
 
-        # Logit transformation: avoid predictions outside [0,1]
-        # TODO: Add transformation selection as a parameter.
+        # Apply logit transformation to avoid predictions outside [0,1].
         if self.normalize == "logit":
             y_nonzero_norm = np.log(y_nonzero / (1 - y_nonzero))
         else:
             y_nonzero_norm = y_nonzero
-        self.regressor = self.regressor_model
+
+        # Build regressor pipeline: include scaler if provided.
+        if self.regressor_scaler is not None:
+            self.regressor = Pipeline([
+                ('scaler', self.regressor_scaler),
+                ('regressor', self.regressor_model)
+            ])
+        else:
+            self.regressor = self.regressor_model
+        
         self.regressor.fit(X_nonzero, y_nonzero_norm)
 
-    def evaluate(self, include_test=False, verbose = True):
+    def evaluate(self, include_test=False, verbose=True):
         """
         Evaluates the two-stage model using the test split from the data object.
         """
-        
         if self.suppress_messages:
             verbose = False
         if include_test:
@@ -645,7 +661,6 @@ class ModelPipeline:
                 y_nz_pred = 1 / (1 + np.exp(-y_nz_pred_norm))  # Inverse logit
             else:
                 y_nz_pred = y_nz_pred_norm
-            # TODO: Add transformation selection as a parameter. (in this case is the inverse transformation)
         else:
             y_nz_pred = np.array([])
         
@@ -654,24 +669,21 @@ class ModelPipeline:
         final_pred[predicted_zero != 1] = y_nz_pred
         
         # Evaluation metrics.
-        ## Zero-Class F1: F1 score for the binary classifier.
-        f1 = f1_score(iz_test, predicted_zero)
+        f1 = round(f1_score(iz_test, predicted_zero), 3)
         non_zero_mask_test = y_test != 0
-        ## Non-Zero MAE: Mean absolute error for non-zero estimates.
-        mae_non_zero = mean_absolute_error(y_test[non_zero_mask_test], final_pred[non_zero_mask_test])
-        ## Overall MAE: Mean absolute error for all estimates.
-        mae = mean_absolute_error(y_test, final_pred)
-        ## Correlation: Pearson correlation between actual and predicted values. 
-        corr = np.corrcoef(y_test, final_pred)[0, 1]
-        ## Correlation (Non-Zero): Pearson correlation for non-zero estimates only.
-        corr_non_zero = np.corrcoef(y_test[non_zero_mask_test], final_pred[non_zero_mask_test])[0, 1]
+        mae_non_zero = round(mean_absolute_error(y_test[non_zero_mask_test], final_pred[non_zero_mask_test]), 3)
+        mae = round(mean_absolute_error(y_test, final_pred), 3)
+        corr = round(np.corrcoef(y_test, final_pred)[0, 1], 3)
+        corr_non_zero = round(np.corrcoef(y_test[non_zero_mask_test], final_pred[non_zero_mask_test])[0, 1], 3)
+        r2 = round(r2_score(y_test, final_pred), 3)
+        r2_non_zero = round(r2_score(y_test[non_zero_mask_test], final_pred[non_zero_mask_test]), 3)
+        
         if verbose:
             print("Zero-Class F1:", f1)
             print("Non-Zero MAE:", mae_non_zero, "Correlation (Non-Zero):", corr_non_zero)
             print("Overall MAE:", mae, "Correlation:", corr)
+            print("R-squared:", r2, "R-squared (Non-Zero):", r2_non_zero)
 
-
-        # Save the scores for later use.
         self.scores = {
             'f1': f1,
             'mae_non_zero': mae_non_zero,
@@ -680,7 +692,6 @@ class ModelPipeline:
             'correlation_non_zero': corr_non_zero
         }
         
-        # Plot actual vs. predicted.
         results_df = y_test.to_frame().assign(Predicted=final_pred)
         results_df["Actual_Zero"] = results_df["ESTIMATE_WFH_ABLE"].apply(lambda x: 1 if x > 0 else 0)
         results_df["Predicted_Zero"] = results_df["Predicted"].apply(lambda x: 1 if x > 0 else 0)
@@ -703,11 +714,8 @@ class ModelPipeline:
         Args:
             n_features (int): Number of top features to plot. Defaults to 10.
         """
-        
-        # Get human-readable feature names using the get_content_model method.
         features = list(self.data.X_train.get_content_model(type='title').columns)
         
-        # Standard feature importances (Classifier)
         if hasattr(self.calibrated_classifier, 'base_estimator_'):
             importances = self.calibrated_classifier.base_estimator_.feature_importances_
         else:
@@ -720,7 +728,6 @@ class ModelPipeline:
         ax.set_title("Classifier Feature Importances")
         plt.close()
 
-        # Standard feature importances (Regressor)
         importances_reg = self.regressor.feature_importances_
         reg_imp_df = pd.DataFrame({'Feature': features, 'Importance': importances_reg})
         reg_imp_df = reg_imp_df.sort_values(by='Importance', ascending=False)
@@ -730,7 +737,6 @@ class ModelPipeline:
         ax.set_title("Regressor Feature Importances")
         plt.close()
 
-        # Permutation importance for classifier
         perm_clf = permutation_importance(
             self.calibrated_classifier, self.data.X_train, self.data.iz_train,
             n_repeats=10, random_state=42
@@ -744,7 +750,6 @@ class ModelPipeline:
         ax.set_title("Permutation Importances for Classifier")
         plt.close()
 
-        # Permutation importance for regressor
         perm_reg = permutation_importance(
             self.regressor, self.data.X_train, self.data.y_train,
             n_repeats=10, random_state=42
@@ -757,54 +762,47 @@ class ModelPipeline:
         sns.barplot(x='Importance', y='Feature', data=perm_reg_df.iloc[:n_features], ax=ax)
         ax.set_title("Permutation Importances for Regressor")
         plt.close()
-        
 
-    def predict_unlabeled(self):
+    def predict_unlabeled(self, non_zero_cutoff=0.1, classifier_margin=0.05):
         """
-        Makes predictions on the unlabeled portion of the data.
+        Makes predictions on the unlabeled portion of the data with an override
+        where the regressor's prediction can take precedence if the classifier
+        is only marginally confident about a zero.
+        
+        Args:
+            non_zero_cutoff (float): Minimum regressor prediction value to override a zero.
+            classifier_margin (float): Margin above zero_threshold indicating classifier uncertainty.
         """
         X = self.data.unlabeled_data.drop(columns="ESTIMATE_WFH_ABLE")
         zero_probs = self.calibrated_classifier.predict_proba(X)[:, 1]
         predicted_zero = (zero_probs > self.zero_threshold).astype(int)
-        X_non_zero = X.loc[predicted_zero != 1]
-        if not X_non_zero.empty:
-            y_nz_pred_norm = self.regressor.predict(X_non_zero)
+        
+        zero_idx = np.where(predicted_zero == 1)[0]
+        
+        if zero_idx.size > 0:
+            y_pred_norm = self.regressor.predict(X)
             if self.normalize == "logit":
-                y_nz_pred = 1 / (1 + np.exp(-y_nz_pred_norm))
+                y_pred = 1 / (1 + np.exp(-y_pred_norm))
             else:
-                y_nz_pred = y_nz_pred_norm
-        else:
-            y_nz_pred = np.array([])
-        final_pred = np.zeros(len(X))
-        final_pred[predicted_zero == 1] = 0
-        final_pred[predicted_zero != 1] = y_nz_pred
-        
-        
-        # Update the unlabeled data with the predictions.
+                y_pred = y_pred_norm
+
+            for idx in zero_idx:
+                if (zero_probs[idx] - self.zero_threshold) < classifier_margin and y_pred[idx] > non_zero_cutoff:
+                    predicted_zero[idx] = 0  # Override the zero prediction
+
+        final_pred = np.where(predicted_zero == 1, 0, y_pred)
         self.data.unlabeled_data["ESTIMATE_WFH_ABLE"] = final_pred
 
-        # Create a prediction plot for the unlabeled data and store it in the data object.
         fig, ax = self.plot_manager.create_plot('unlabeled_prediction', figsize=(10, 6))
-
-        sns.kdeplot(self.data.unlabeled_data["ESTIMATE_WFH_ABLE"], 
-                    label='Unlabeled',
-                    fill=True, 
-                    alpha=0.5)
-        
-        sns.kdeplot(self.data.labeled_data["ESTIMATE_WFH_ABLE"],
-                    label='Labeled Data',
-                    fill=True,
-                    alpha=0.5)
-        
+        sns.kdeplot(self.data.unlabeled_data["ESTIMATE_WFH_ABLE"], label='Unlabeled', fill=True, alpha=0.5)
+        sns.kdeplot(self.data.labeled_data["ESTIMATE_WFH_ABLE"], label='Labeled Data', fill=True, alpha=0.5)
         sns.despine()
         plt.xlabel("Predicted WFH Estimate")
         plt.ylabel("Density")
         plt.title("Distribution of Predicted WFH Estimates")
         plt.legend()
         plt.xlim(0, 1)
-        plt.close()  # Close the figure window but keep the figure object stored
+        plt.close()
 
     def plot(self, plot_name):
-        
         return self.plot_manager.show_plot(plot_name)
-

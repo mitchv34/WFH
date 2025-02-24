@@ -17,7 +17,7 @@
 // ********************************************************************************
 
 local y_var = "$y_var"
-local main_x= "wfh_cat"
+
 
 local filename = "reg_wage_wfh_$add_fn"
 
@@ -62,6 +62,7 @@ label var educd "Education"
 label var age "Age"
 label var age2 "Age^2"
 label var race "Race"
+label var teleworkable_occsoc_detailed "Tele Index"
 
 // ************************************************************************
 // * Run regressions
@@ -75,72 +76,35 @@ di "Occupation: $occup_var, yvar: `y_var', xvar: `main_x'"
 di "Cluster: `cluster_type', vce: `vce_setting', weight: `weight_cond'"
 foreach j in $dem_list{
     foreach i in $fe_list{
-        di " ********* fe `i' ********* dem `j' *********"
-        di " Running FE: ${fe`i'}  DEM: ${dem`j'}"
+        foreach k in $main_x_list{
+            di " ********* fe `i' ********* dem `j' *********"
+            di " Running FE: ${fe`i'}  DEM: ${dem`j'}"
 
-        local regij = "reg`i'`j'"
-        local reg_list = "`reg_list' `regij'"
+            local regijk = "reg`i'`j'`k'"
 
-        local fe_l = "${fe`i'}"  // Store the fixed effects in a local macro
-        local dem_l = "${dem`j'}" // Store the demographic variables in a local macro
-
-        // # if occup in fe_`i'{ then YES} OTHERWISE {NO}
-        if `i'==6{
-            local dem_l = ""
+            local fe_l = "${fe`i'}"  // Store the fixed effects in a local macro
+            local dem_l = "${dem`j'}" // Store the demographic variables in a local macro
+            local main_x= "${main_x`k'}" // Store the main x variable in a local macro
+            // # if occup in fe_`i'{ then YES} OTHERWISE {NO}
+            if `i'==6{
+                local dem_l = ""
+            }
+            if `j'==2{
+                local dem_l = ""
+                local fe_l = "`fe_l' `dem2'"
+            }
+            if `k'==2 & `i'<4{
+                display "Skipping"
+            }
+            else{
+				local reg_list = "`reg_list' `regijk'"
+                qui reghdfe `y_var' `main_x' `dem_l' `weight_cond', absorb(`fe_l') `vce_setting'
+                est store `regijk'
+            }
         }
-        if `j'==2{
-            local dem_l = ""
-            local fe_l = "`fe_l' `dem2'"
-        }
-        qui reghdfe `y_var' `main_x' `dem_l' `weight_cond', absorb(`fe_l') `vce_setting'
-        est store `regij'
-
-        // Check if each fixed effect variable is in $fe`i'
-        
-
-        // Initialize the row variables as "NO"
-        local row_occup "NO"
-        local row_ind "NO"
-        local row_year "NO"
-        local row_cbs "NO"
-        local row_empt "NO"
-        local row_dem "NO"
-
-        // Check for each variable
-        if strpos("`fe_l'", "occup") > 0 {
-            local row_occup "YES"
-            di "- Occupation FE"
-        }
-        if strpos("`fe_l'", "ind") > 0 {
-            local row_ind "YES"
-            di "- Industry FE"
-        }
-        if strpos("`fe_l'", "year") > 0 {
-            local row_year "YES"
-            di "- Year FE"
-        }
-        if strpos("`fe_l'", "cbsa20") > 0 {
-            local row_cbs "YES"
-            di "- CBSA FE"
-        }
-        if strpos("`fe_l'", "classwkrd") > 0 {
-            local row_empt "YES"
-            di "- Class worker FE"
-        }
-        if strpos("`fe_l'", "edu") > 0 {
-            local row_dem "YES"
-            di "- Advanced demographics"
-        }
-
-        // Add the row variables to the stored estimates
-        estadd local row_occup "`row_occup'":`regij'
-        estadd local row_ind "`row_ind'":`regij'
-        estadd local row_year "`row_year'":`regij'
-        estadd local row_cbs "`row_cbs'":`regij'
-        estadd local row_empt "`row_empt'":`regij'
-        estadd local row_dem "`row_dem'":`regij'
     }
 }
+
 
 esttab `reg_list', ///
     nogaps label nomtitles ///
@@ -156,7 +120,7 @@ esttab `reg_list' using "$path_tables/`filename'.tex", replace ///
     se star(* 0.1 ** 0.05 *** 0.001) ///
     label ///
     nomtitles ///
-    keep(wfh_cat) ///
+    keep(wfh_cat teleworkable_occsoc_detailed) ///
     stats(N r2) ///
     title("Wage = f(WFH, X, FE)") ///
     addnotes("Occupation: `occup_var', yvar: `y_var', xvar: `main_x', cluster: `cluster_type'") ///

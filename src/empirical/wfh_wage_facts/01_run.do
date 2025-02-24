@@ -8,7 +8,8 @@
 // * This files runs reduced form empirical facts for the project. 
 
 // * Variables in raw data
-// year perwt age race raced educ wage educd classwkrd occsoc_group occsoc_detailed occsoc_broad cbsa20 wfh
+// year perwt age race raced educ wage educd classwkrd
+// occsoc_group occsoc_detailed occsoc_broad cbsa20 wfh teleworkable
 //********************************************************************************
 // * global variables and set up
 // ********************************************************************************
@@ -30,6 +31,7 @@ global fe3 = "year cbsa20 ind_cat"
 global fe4 = "year cbsa20 occup_cat"
 global fe5 = "year cbsa20 occup_cat classwkrd ind_cat"
 global fe6 = "year cbsa20 occup_cat classwkrd ind_cat $dem3"
+global fe7 = "year cbsa20 classwkrd ind_cat $dem3"
 
 
 // *******************************************************
@@ -49,59 +51,88 @@ global dem_list = "2"
 
 // *******************************************************
 
-global add_fn = ""
+// global add_fn = ""
+// // * Run table summary for the project
+
+// foreach c in `cluster_list' { //"loan_losses" zscore2 loan_losses ratio_eqasset
+//     di "Cluster: `c'" 
+//     global cluster_type = "`c'"
+    
+//     foreach o in `occu_list' { //occu_list
+//         di "Occupation: `o'"
+//         global occup_var = "`o'"
+//         do "$path_code/03_reg_wage_wfh.do" 
+//     }
+
+// }
+    // forvalues i = 1/7 { //1/7 
+
+// *******************************************************
+// * Run basic regressions with Teleworkable index
+// *******************************************************
+
+global add_fn = "Teleindex"
 // * Run table summary for the project
+global main_x1 = "teleworkable_occsoc_detailed"
+global main_x2 = "teleworkable_occsoc_detailed wfh_cat"
+
+global fe_list = "2 3 4 7"
+global dem_list = "2"
+global main_x_list = "1 2"
+
+global occup_var = "occsoc_minor"
+
+global cluster_list = "robust" // cbs_year occupm_educ " //robust cbs_year occupm_educ edu_age
 
 foreach c in `cluster_list' { //"loan_losses" zscore2 loan_losses ratio_eqasset
     di "Cluster: `c'" 
     global cluster_type = "`c'"
     
-    foreach o in `occu_list' { //occu_list
-        di "Occupation: `o'"
-        global occup_var = "`o'"
-        do "$path_code/03_reg_wage_wfh.do" 
+	foreach y in wage log_wage{
+		global y_var = "`y'"
+		do "$path_code/04_reg_wage_wfh_teleindex.do"
     }
 
 }
-    // forvalues i = 1/7 { //1/7 
 
 
-//*************************************************
-// * Remove years Robustness
 
-// * Remove covid years 
-global remove_years = "2020 2021"
+// //*************************************************
+// // * Remove years Robustness
 
-global add_fn = "_covid"
+// // * Remove covid years 
+// global remove_years = "2020 2021"
 
-global y_var = "wage"
+// global add_fn = "_covid"
 
-global cluster_type = "robust"
+// global y_var = "wage"
 
-foreach o in `occu_list' { //occu_list
-    di "Occupation: `o'"
-    global occup_var = "`o'"
-    do "$path_code/03_reg_wage_wfh.do" 
-}
+// global cluster_type = "robust"
 
-//*************************************************
+// foreach o in `occu_list' { //occu_list
+//     di "Occupation: `o'"
+//     global occup_var = "`o'"
+//     do "$path_code/03_reg_wage_wfh.do" 
+// }
 
-// * Log wage
+// //*************************************************
 
-global y_var = "log_wage"
+// // * Log wage
 
-global add_fn = "_logwage"
+// global y_var = "log_wage"
 
-global remove_years = ""
+// global add_fn = "_logwage"
 
-foreach c in `cluster_list' { 
-    di "Cluster: `c'" 
-    global cluster_type = "`c'"
+// global remove_years = ""
+
+// foreach c in `cluster_list' { 
+//     di "Cluster: `c'" 
+//     global cluster_type = "`c'"
     
-    foreach o in `occu_list' { //occu_list
-        di "Occupation: `o'"
-        global occup_var = "`o'"
-        do "$path_code/03_reg_wage_wfh.do" 
-    }
+//     foreach o in `occu_list' { //occu_list
+//         di "Occupation: `o'"
+//         global occup_var = "`o'"
+//         do "$path_code/03_reg_wage_wfh.do" 
+//     }
 
-}
+// }

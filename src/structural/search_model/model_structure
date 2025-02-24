@@ -1,0 +1,8 @@
+# Model structure:
+src/structural/search_model/
+├── types.jl             # Contains all structs and type definitions
+├── primitives.jl        # Functions related to model primitives
+├── policies.jl          # Policy computation functions
+├── value_functions.jl   # Value function iteration methods
+├── utils.jl             # Utility functions and helpers
+└── model.jl             # Main model file that ties everything together

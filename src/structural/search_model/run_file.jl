@@ -1,102 +1,92 @@
-using Plots
-using LaTeXStrings
-using Statistics
+import Term: install_term_stacktrace
+install_term_stacktrace() 
+
+
+include("model_plots.jl")  # Import the module file
+using .ModelPlots  # Import the module
 
 # @time begin 
 include("model.jl")
-path_params = "/Users/mitchv34/Work/WFH/src/structural/search_model/parameters.yaml"
-prim, res = initializeModel(path_params);
+parameters_path = "src/structural/search_model/parameters.yaml"
+psi_distribution_data_path = "/project/high_tech_ind/WFH/WFH/data/results/data_density_3d.csv"
+prim, res = initializeModel(parameters_path, psi_distribution_data_path);
+compute_optimal_α!(prim, res);
+
 iterateValueMatch(prim, res)
 solveSubMarketTightness!(prim, res);
 iterateW_U(prim, res)
-# end
+
+using Plots
+plot(prim.worker_skill, res.ψ_top, label="Top", lw = 3, xlabel="Worker Skill", ylabel="Firm Remote Efficiency")
+ylims!(prim.ψ_grid[1], prim.ψ_grid[end])
+plot!(prim.worker_skill, res.ψ_bottom, label="Bottom", lw = 3)
+
+heatmap(prim.worker_skill,
+        prim.ψ_grid,
+        res.α_policy, 
+        xlabel="Worker Skill",
+        ylabel="Remote Productivity",
+        title="Optimal Remote Work Policy")
 
 
-# Plotting
-# Plot optimal WFH policy
-
-plot(   prim.ψ_grid, res.α_policy, label=L"\alpha^*(\psi)",
-        xlabel="Productivity ψ", ylabel="WFH policy α(ψ)",
-        title="Optimal WFH policy α(ψ)",
-        lw=2, color=:blue)
-vline!([prim.ψ₀], label="ψ_0", color=:red, linestyle=:dash)
-
-# Plot optimal wage policy
-plot(   prim.ψ_grid, res.w_policy[:, 1], label=L"\alpha^*(\psi)",
-        xlabel="Productivity ψ", ylabel="WFH policy α(ψ)",
-        title="Optimal WFH policy α(ψ)",
-        lw=2, color=:blue)
-plot!(   prim.ψ_grid, res.w_policy[:, 100], label=L"\alpha^*(\psi)",
-        xlabel="Productivity ψ", ylabel="WFH policy α(ψ)",
-        title="Optimal WFH policy α(ψ)",
-        lw=2, color=:red)
-vline!([prim.ψ₀], label="ψ_0", color=:red, linestyle=:dash)
+heatmap(
+        prim.worker_skill,
+        prim.x_grid,
+        prim.p.(res.θ'), 
+        xlabel="Worker Skill",
+        ylabel="x",
+        title="p(θ)")
 
 
 
-# Plot value function
-ψ_values_ind = [25, 50, 75, 100]
-plot()
-for ψ in ψ_values_ind
-        plot!(  prim.x_grid, res.J[ψ, :], label="J(x,ψ=$ψ)",
-                xlabel="Promised utility (x)", ylabel="Value J(x,ψ)",
-                title="Value function J(x,ψ)",
-                lw=2)
-end
-plot!()
 
+# Model Plots
+plots = ModelPlots.plot_all(prim, res);
+# Density of remote work productivity
+plots[:density]
+# Optimal remote work
+plots[:optimal_α]
+# Optimal wage policy
+plots[:wage_policy]
+# Firm value (x continuous ψ discrete)
+plots[:firm_value_x]
+# Firms value (ψ continuous x discrete)
+plots[:firm_value_ψ]
+# Market tightness
+plots[:market_tightness]
+# Job finding rate
+plots[:finding_rate]
+# Worker value functions
+plots[:unemployed_value]
+# Unemployed Worker search policy
+plots[:unemployed_search_pol]
+# Employed Worker value (x continuous ψ discrete)
+plots[:employed_value_x]
 
-p1 = plot()
-p2 = plot()
-for ψ in ψ_values_ind
-        # Plot market tightness
-        plot!(p1,  prim.x_grid, res.θ[ψ, :], label=latexstring("\\theta(x,\\psi=$ψ)"),
-                xlabel="Promised utility (x)", ylabel=L"\theta(x,\psi)",
-                title="Market Tightness θ(x,ψ)",
-                lw=2)
-        # Plot probability of finding a job
-        plot!(p2,  prim.x_grid, prim.p.(res.θ[ψ, :]), label=latexstring("p(\\theta(x,\\psi=$ψ))"),
-                xlabel="Promised utility (x)", ylabel=L"p(\theta(x,\psi))",
-                title="Job Finding Rate p(θ(x,ψ))",
-                lw=2)
-        
-end
-p2
-
-# Plot probability of worker finding a job
-plot(   prim.W_grid, prim.p.(res.θ), label=L"p(\theta)",
-        xlabel="Searched Wage", ylabel="Probability",
-        title="Job Finding Rate",
-        lw=2, color=:green)
-        
-# Plot probability of firm filling a vacancy
-plot(   prim.W_grid, prim.p.(res.θ) ./ res.θ, label=L"q(\theta)",
-        xlabel="Posted Wage", ylabel="Probability",
-        title="Vacancy Filling Rate",
-        lw=2, color=:green)
-
-# Plot Probability of worker finding a job vs Firm filling a vacancy
-plot(   res.θ, prim.p.(res.θ), label="Probability of Worker Matching a Firm", 
-        xlabel="Market tightness (v/u)", ylabel="Probability",
-        title="",
-        lw=2, color=:green)
-plot!(  res.θ, prim.p.(res.θ) ./ res.θ , label="Probability of Firm Matching a Worker",
-        xlabel="Market tightness (v/u)", ylabel="Probability",
-        title="",
-        lw=2, color=:red, linestyle=:dash)
-
-# Plot worker value function
-plot(   prim.b_grid, res.U, label="U(b)",
-        xlabel="Unemployment benefit b", ylabel="U(b)",
-        title="Unemployed Worker Value Function",
-        lw=2, color=:blue)
-plot(  prim.W_grid, res.W, label="W(w)",
-        xlabel="Wage w", ylabel="W(w)",
-        title="Employed Worker Value Function",
-        lw=2, color=:red)   
-
-# Plot wage search behavior
-plot(   prim.b_grid, res.w, label="Wage w(b)",
-        xlabel="Unemployment benefit b", ylabel="Wage w(b)",
-        title="Wage Posting Behavior",
-        lw=2, color=:blue)
+plot(
+        prim.x_grid,
+        prim.p.(res.θ[10, :]),
+        lw = 3,
+        label = "Worker Skill = 10",
+        xlabel = "Promised Utility (x)",
+        ylabel = "Probability of Job Offer (p(θ))",
+)
+ylims!(0, 1.0)
+plot!(
+        prim.x_grid,
+        prim.p.(res.θ[40, :]),
+        lw = 3,
+        label = "Worker Skill = 40"
+)
+plot!(
+        prim.x_grid,
+        prim.p.(res.θ[30, :]),
+        lw = 3,
+        label = "Worker Skill = 30"
+)
+plot!(
+        prim.x_grid,
+        prim.p.(res.θ[20, :]),
+        lw = 3,
+        label = "Worker Skill = 20"
+)

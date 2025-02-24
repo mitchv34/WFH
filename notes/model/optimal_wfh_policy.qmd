@@ -17,6 +17,8 @@ This document outlines a model for determining the optimal fraction of remote wo
 
 The firm’s productivity depends on:
 
+- $A$: Baseline productivity.
+- $h$: Worker skill level.
 - **On-site work**: $1 - \alpha$
 - **Remote work**: $\alpha(\psi - \psi_0)^\gamma$, where:
   - $\psi \in [0, 1]$: Firm’s remote efficiency.
@@ -25,7 +27,7 @@ The firm’s productivity depends on:
 
 The production function of a firm with remote efficiency $\psi$ that adopts a fraction $\alpha$ of remote work is given by:
 $$
-Y(\alpha \mid \psi) = A\left[(1 - \alpha) + \alpha(\psi - \psi_0)^\gamma\right]
+Y(h, \alpha \mid \psi) = A h \left[(1 - \alpha) + \alpha(\psi - \psi_0)^\gamma\right]
 $$
 
 #### **2. Worker Utility and Wage**

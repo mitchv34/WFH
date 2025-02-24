@@ -1,26 +1,32 @@
 Primitives:
   beta: 0.996       # discount factor
   gamma: 0.6        # job finding rate parameter
-  kappa: 2.37       # vacancy posting cost
-  delta_bar: 0.012  # job destruction rate
+  kappa: 1.37       # vacancy posting cost
+  delta_bar: 0.07  # job destruction rate
   sigma: 0.0        # risk aversion parameter
   # Production function parameters
-  A: 1.0            # Total factor productivity 
-  psi_0: 0.5        # Minimum efficiency threshold for WFH
-  
+  A: 26.0           # Total factor productivity 
+  # psi_0: 0.0        # Minimum efficiency threshold for WFH #! Im estimating this parameter from the data
+  alpha_data: 0.095 # share of workers who can work from home #! Hardcoded from the data for now #TODO: Make it flexible
+  psi_0: 1.42        # Minimum efficiency threshold for WFH
   # Utility function parameters
-  chi: 1.1          # utility function parameter
-  c: 1.1            # Scaling parameter for utility function
-  b_prob: 0.1       # probability of losing unemployment benefits
+  chi: 1.01          # utility function parameter
+  c0: 16.0            # Scaling parameter for utility function
+  c1: 2.0            # Worker skill part of disutility
+  b: 0.1            # unemployment benefits
+  # b_prob: 0.5     # probability of losing unemployment benefits
+  phi: 2.5          # Remote efficiency-worker skill factor
   # Grid parameters
   ## Remote work productivity grid
   n_psi: 101        # Number of ψ grid points [NEW]
-  psi_min: 0.0      # minimum psi
-  psi_max: 2.0      # maximum psi
+  ## Worker skill grid
+  n_h: 50          # Number of s grid points
+  h_min: 0.2      # minimum s
+  h_max: 1.0        # maximum s
   ## Utility grid
   n_x: 100          # number of x grid points
-  x_min: 0.1        # minimum x
-  x_max: 5.0        # maximum x
+  x_min: 5        # minimum x
+  x_max: 42.0        # maximum x
 
 
 Simulation:

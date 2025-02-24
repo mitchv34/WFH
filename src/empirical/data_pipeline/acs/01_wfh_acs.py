@@ -19,6 +19,13 @@ PROCESSED_DATA_DIR = os.path.join(BASE_DIR, 'data', 'processed', 'acs')
 
 SOC_AGGREGATOR = os.path.join(BASE_DIR, 'data', 'aux_and_croswalks', 'soc_structure_2018.xlsx')
 PUMA_CROSSWALK = os.path.join(BASE_DIR, 'data', 'aux_and_croswalks', "puma_to_cbsa.csv")
+WFH_INDEX = os.path.join(BASE_DIR, 'data', 'results', 'wfh_estimates.csv')
+
+COLS_TO_EXPORT = [
+    'YEAR', 'PERWT', 'AGE', 'RACE', 'RACED', 'EDUC', 'EDUCD', 'CLASSWKRD','WAGE', 'INDNAICS', 'cbsa20', 'WFH',
+    'OCCSOC_detailed', 'OCCSOC_broad', 'OCCSOC_minor',
+    'TELEWORKABLE_OCCSOC_detailed', 'TELEWORKABLE_OCCSOC_broad', 'TELEWORKABLE_OCCSOC_minor'
+]
 
 # Ensure directories exist
 os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
@@ -51,7 +58,7 @@ def read_acs_data(path, min_year=None, max_year=None):
         "UHRSWORK": float,
         "INCTOT": float
     }
-    # Read data
+    # Read data (only the first 1200 rows for testing)
     data = pd.read_csv(path, compression='gzip', low_memory=False, dtype=dtypes)
     logging.info(f"Data shape after reading: {data.shape}")
 
@@ -269,24 +276,36 @@ def aggregate_puma_to_cbsa(data, puma_crosswalk):
     return data
 
 # ? Telework Index
-def telework_index(data, soc_aggregator, occ_col="OCCSOC"):
+def telework_index(data, soc_aggregator, how="my_index", occ_col="OCCSOC", path_to_remote_work_index=WFH_INDEX):
     """
     Calculate the telework index for different occupation codes.
     """
     logging.info("Starting telework_index function.")
-    # Load external classification data
-    dn_clasification = pd.read_csv("https://raw.githubusercontent.com/jdingel/DingelNeiman-workathome/master/occ_onet_scores/output/occupations_workathome.csv")
-    dn_clasification.rename(columns=lambda x: x.upper(), inplace=True)
+    if how == "my_index":
+        logging.info(f"Using my_index method. Loading telework index from {path_to_remote_work_index}.")
+        wfh_index = pd.read_csv(path_to_remote_work_index)
+        # Average the remote work index for each occupation code
+        clasification = wfh_index.groupby('OCC_CODE')['ESTIMATE_WFH_ABLE'].mean().reset_index()
+        clasification = clasification.merge(soc_aggregator, left_on = "OCC_CODE", right_on="Detailed Occupation", how="inner")
+        clasification.rename(columns = {"ESTIMATE_WFH_ABLE":"TELEWORKABLE"}, inplace=True)
+    elif how == "dn_index":   
+        # Load external classification data
+        logging.info("Using dn_index method. Loading telework classification data.")
+        clasification = pd.read_csv("https://raw.githubusercontent.com/jdingel/DingelNeiman-workathome/master/occ_onet_scores/output/occupations_workathome.csv")
+        clasification.rename(columns=lambda x: x.upper(), inplace=True)
+        # Split the ONETSOCCODE to get OCC_CODE and ONET_DETAIL
+        clasification[['OCC_CODE', 'ONET_DETAIL']] = clasification['ONETSOCCODE'].str.split(".", expand=True)
+        clasification = clasification[clasification['ONET_DETAIL'] == "00"]
+        clasification = clasification[['OCC_CODE', 'TITLE', 'TELEWORKABLE']]
+        logging.info(f"Filtered telework data to ONET_DETAIL=='00'. Shape: {clasification.shape}")
+    else:
+        raise ValueError("Invalid value for 'how' parameter. Must be 'my_index' or 'dn_index'.")
+    
     logging.info("Loaded and formatted telework classification data.")
     
-    # Split the ONETSOCCODE to get OCC_CODE and ONET_DETAIL
-    dn_clasification[['OCC_CODE', 'ONET_DETAIL']] = dn_clasification['ONETSOCCODE'].str.split(".", expand=True)
-    dn_clasification = dn_clasification[dn_clasification['ONET_DETAIL'] == "00"]
-    dn_clasification = dn_clasification[['OCC_CODE', 'TITLE', 'TELEWORKABLE']]
-    logging.info(f"Filtered telework data to ONET_DETAIL=='00'. Shape: {dn_clasification.shape}")
 
     # Create mapping from OCC_CODE to TELEWORKABLE
-    telework_dict = dict(zip(dn_clasification['OCC_CODE'], dn_clasification['TELEWORKABLE']))
+    telework_dict = dict(zip(clasification['OCC_CODE'], clasification['TELEWORKABLE']))
     data['TELEWORKABLE_OCCSOC'] = data['OCCSOC'].apply(lambda x: convert_using_cw(x, telework_dict, False))
     logging.info("Mapped TELEWORKABLE values to data based on OCCSOC.")
 
@@ -296,19 +315,19 @@ def telework_index(data, soc_aggregator, occ_col="OCCSOC"):
     soc_2018_dict_broad_minor = dict(zip(soc_aggregator["Broad Group"], soc_aggregator["Minor Group"]))
     
     # Map telework values at different aggregation levels
-    dn_clasification["BROAD"] = dn_clasification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_broad))
-    dn_clasification["MINOR"] = dn_clasification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_minor))
+    clasification["BROAD"] = clasification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_broad))
+    clasification["MINOR"] = clasification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_minor))
     logging.info("Created BROAD and MINOR occupation codes for telework classification.")
 
     # Group and average TELEWORKABLE values for BROAD and MINOR categories
-    dn_clasification_BROAD = dn_clasification.groupby("BROAD")["TELEWORKABLE"].mean().reset_index()   
-    dn_clasification_MINOR = dn_clasification.groupby("MINOR")["TELEWORKABLE"].mean().reset_index()  
+    clasification_BROAD = clasification.groupby("BROAD")["TELEWORKABLE"].mean().reset_index()   
+    clasification_MINOR = clasification.groupby("MINOR")["TELEWORKABLE"].mean().reset_index()  
     logging.info("Calculated average TELEWORKABLE values for BROAD and MINOR groups.")
 
     # Create mapping dictionaries for telework values
-    telework_dict_detailed = dict(zip(dn_clasification['OCC_CODE'], dn_clasification['TELEWORKABLE']))
-    telework_dict_broad = dict(zip(dn_clasification_BROAD['BROAD'], dn_clasification_BROAD['TELEWORKABLE']))
-    telework_dict_minor = dict(zip(dn_clasification_MINOR['MINOR'], dn_clasification_MINOR['TELEWORKABLE']))
+    telework_dict_detailed = dict(zip(clasification['OCC_CODE'], clasification['TELEWORKABLE']))
+    telework_dict_broad = dict(zip(clasification_BROAD['BROAD'], clasification_BROAD['TELEWORKABLE']))
+    telework_dict_minor = dict(zip(clasification_MINOR['MINOR'], clasification_MINOR['TELEWORKABLE']))
 
     # Map the telework values to the data for detailed, broad, and minor groups
     data['TELEWORKABLE_' + occ_col + '_detailed'] = data[occ_col + '_detailed'].apply(lambda x: convert_using_cw(x, telework_dict_detailed, False))
@@ -336,6 +355,7 @@ def save_data(data, path):
     logging.info(f"Saving data to {path}. Final data shape: {data.shape}")
     data.to_csv(path, index=False)
     logging.info("Data saved successfully.")
+    
 
 # %% Main
 if __name__ == "__main__":
@@ -368,8 +388,9 @@ if __name__ == "__main__":
     # Calculate the WFH index for each worker
     data = wfh_index(data)
     # Save the processed data
-    output_path = os.path.join(PROCESSED_DATA_DIR, f'acs_{args.data_file_number}_processed.csv.gz')
-    save_data(data, output_path)
+    output_path = os.path.join(PROCESSED_DATA_DIR, f'acs_{args.data_file_number}_processed.csv')
+    # Select the relevant variables before exporting
+    save_data(data[COLS_TO_EXPORT], output_path)
 
     logging.info("Script finished successfully.")
 

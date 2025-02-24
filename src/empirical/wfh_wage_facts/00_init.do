@@ -11,7 +11,7 @@ local unix = 0
 global project_name = "WFH"
 
 if `unix' ==1{
-	global dir "/Users/gisellelab/Work/$project_name"
+	global dir "/Users/mitchv34/Work/$project_name"
 	cd `dir'
 }
 else {

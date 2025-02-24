@@ -36,6 +36,9 @@ tostring occsoc_minor, replace
 replace occsoc_broad = occsoc_minor if occsoc_broad == ""
 replace occsoc_detailed = occsoc_broad if occsoc_detailed == ""
 
+replace teleworkable_occsoc_broad = teleworkable_occsoc_minor if  teleworkable_occsoc_broad == .
+replace teleworkable_occsoc_detailed = teleworkable_occsoc_broad if  teleworkable_occsoc_detailed == .
+
 // create categorical variables
 // encode race, gen(race_cat)
 // encode educ, gen(educ_cat)
