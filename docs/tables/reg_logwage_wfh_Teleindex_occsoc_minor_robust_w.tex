@@ -1,0 +1,20 @@
+\begin{table}[htbp]\centering
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\caption{Wage = f(WFH, X, FE)}
+\begin{tabular}{l*{6}{c}}
+\hline\hline
+                    &\multicolumn{1}{c}{(1)}         &\multicolumn{1}{c}{(2)}         &\multicolumn{1}{c}{(3)}         &\multicolumn{1}{c}{(4)}         &\multicolumn{1}{c}{(5)}         &\multicolumn{1}{c}{(6)}         \\
+\hline
+Tele Index          &       1.009\sym{***}&       0.860\sym{***}&       0.582\sym{***}&       0.551\sym{***}&       0.484\sym{***}&       0.473\sym{***}\\
+                    &   (0.00111)         &   (0.00129)         &   (0.00256)         &   (0.00256)         &   (0.00124)         &   (0.00124)         \\
+1(WFH)              &                     &                     &                     &       0.161\sym{***}&                     &      0.0793\sym{***}\\
+                    &                     &                     &                     &  (0.000970)         &                     &  (0.000909)         \\
+\hline
+N                   &     9708029         &     9708029         &     9708029         &     9708029         &     9708028         &     9708028         \\
+r2                  &       0.198         &       0.279         &       0.334         &       0.338         &       0.420         &       0.421         \\
+\hline\hline
+\multicolumn{7}{l}{\footnotesize Standard errors in parentheses}\\
+\multicolumn{7}{l}{\footnotesize Occupation: , yvar: log\_wage, xvar: teleworkable\_occsoc\_detailed wfh\_cat, cluster: }\\
+\multicolumn{7}{l}{\footnotesize \sym{*} \(p<0.1\), \sym{**} \(p<0.05\), \sym{***} \(p<0.001\)}\\
+\end{tabular}
+\end{table}

@@ -88,7 +88,7 @@ foreach c in `cluster_list' { //"loan_losses" zscore2 loan_losses ratio_eqasset
     di "Cluster: `c'" 
     global cluster_type = "`c'"
     
-	foreach y in wage log_wage{
+	foreach y in wage{
 		global y_var = "`y'"
 		do "$path_code/04_reg_wage_wfh_teleindex.do"
     }

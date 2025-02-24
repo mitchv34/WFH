@@ -1,6 +1,6 @@
 Primitives:
   beta: 0.996       # discount factor
-  gamma: 0.6        # job finding rate parameter
+  gamma: 0.3        # job finding rate parameter
   kappa: 1.37       # vacancy posting cost
   delta_bar: 0.07  # job destruction rate
   sigma: 0.0        # risk aversion parameter
