@@ -30,6 +30,9 @@ function create_figure(;type="normal")
     elseif type == "tall"
         size = (800, 1200)
         scale = 1.5
+    elseif type == "ultrawide"
+        size = (1400, 600)
+        scale = 1.5
     else
         size = (800, 600)
         scale = 1.0
@@ -235,3 +238,48 @@ end
 fig_worker_search_policy = plot_worker_search_policy(prim, res)
 # Save to pdf to include in the manuscript
 save(joinpath(FOLDER_TO_SAVE, "worker_search_policy.pdf"), fig_worker_search_policy)
+
+function plot_wage_and_remote(prim, res)
+    fig = create_figure(type="ultrawide")
+    # Create axis for expected wages
+    ax1 = create_axis(
+    fig[1, 1],
+    "Expected Wages",
+    latexstring("Worker Skill \$(h)\$"),
+    L"\mathbb{E}w^*(h)")
+    # Compute expected wages
+    Ewages = sum(hcat([res.w_policy[:,i_h, res.x_policy[i_h]] for (i_h, _) in enumerate(prim.worker_skill)]...) .* prim.ψ_pdf, dims=1)
+    # Plot expected wages
+    lines!(
+        ax1, 
+        prim.worker_skill,
+        Ewages[:],
+        color=COLORS[1], linewidth=4, label=""
+    )
+    # Make remote work policy axis
+    ax2 = create_axis(
+        fig[1, 2],
+        "Expected Remote Work",
+        latexstring("Worker Skill \$(h)\$"),
+        L"\mathbb{E}\alpha^*(h)")
+    # Compute expected remote work policy
+    Eα = sum(res.α_policy .* prim.ψ_pdf, dims = 1)
+    # Plot expected remote work policy
+    lines!(
+            ax2,
+            prim.worker_skill,
+            Eα[:],
+            color=COLORS[2], linewidth=4, label="Expected Remote Work Policy"
+        )
+        ax1.xticks = ([prim.worker_skill[1], prim.worker_skill[end]], [L"h_{min}", L"h_{max}"])  # Remove x-axis ticks
+        ax2.xticks = ([prim.worker_skill[1], prim.worker_skill[end]], [L"h_{min}", L"h_{max}"])  # Remove x-axis ticks
+        # Set the limits of the axis
+        ylims!(ax2, 0, 1.0)
+
+    return fig
+end
+fig_wage_and_remote = plot_wage_and_remote(prim, res)
+# Save to pdf to include in the manuscript
+save(joinpath(FOLDER_TO_SAVE, "wage_and_remote.pdf"), fig_wage_and_remote)
+
+
