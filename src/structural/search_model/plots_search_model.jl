@@ -100,7 +100,7 @@ function plot_remote_thresholds_by_worker_skill(prim, res; detailed=false)
     fig = create_figure(type="wide")
     ax = create_axis(
         fig[1, 1],
-        "Optimal Remote Work Policy", 
+        "", 
         latexstring("Worker Skill \$(h)\$"), 
         latexstring("Remote Work Productivity \$(\\psi)\$")
     )
