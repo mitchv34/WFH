@@ -283,3 +283,40 @@ fig_wage_and_remote = plot_wage_and_remote(prim, res)
 save(joinpath(FOLDER_TO_SAVE, "wage_and_remote.pdf"), fig_wage_and_remote)
 
 
+function plot_skill_distribution(skill_dist)
+
+    fig = create_figure()
+    ax = create_axis(
+        fig[1, 1],
+        "Density of Worker Skill",
+        "Worker Skill",
+        "Density"
+    )
+
+    density!(
+        ax, 
+        onet_skill.SKILL_INDEX,
+        color = (COLORS[1], 0.3),
+        strokecolor = COLORS[1],
+        strokewidth = 3, 
+        strokearound = true
+    )
+    # fit a normal distribution to the data
+    normal_dist = fit_mle(Normal, onet_skill.SKILL_INDEX)
+    # get the pdf of the normal distribution
+    x_range = range(minimum(onet_skill.SKILL_INDEX), maximum(onet_skill.SKILL_INDEX), length=100)
+    pdf_normal = pdf(normal_dist, x_range)
+    # plot the normal distribution
+    lines!(
+        ax, x_range, pdf_normal,
+        color = COLORS[2], linewidth = 5, label = "Fitted Normal")
+    # X-axis ticks
+    ax.xticks = ([minimum(onet_skill.SKILL_INDEX), maximum(onet_skill.SKILL_INDEX)], [L"h_{min}", L"h_{max}"])
+    # Remove y-axis ticks
+    ax.yticks = ([], [])
+    xlims!(ax, minimum(onet_skill.SKILL_INDEX), maximum(onet_skill.SKILL_INDEX))
+    return fig
+end
+fig_skill_dist = plot_skill_distribution(onet_skill)
+# Save to pdf to include in the manuscript
+save(joinpath(FOLDER_TO_SAVE, "skill_distribution.pdf"), fig_skill_dist)

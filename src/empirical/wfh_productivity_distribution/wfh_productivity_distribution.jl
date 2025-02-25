@@ -702,3 +702,19 @@ A = β₀ # Firn productivity
 ψ₀ = (β₁ + 1) / A 
 ψ₁ = β₂ / A
 ϕ = β₃ / A
+
+
+fig = Figure(resolution = (800, 600))
+ax = Axis(fig[1, 1], title="Density of SKILL", xlabel="SKILL", ylabel="Density")
+density!(ax, onet_skill.SKILL_INDEX, color = (:red, 0.3), strokecolor = :red, strokewidth = 3, strokearound = true)
+# fit a normal distribution to the data
+normal_dist = fit_mle(Normal, onet_skill.SKILL_INDEX)
+# get the pdf of the normal distribution
+x_range = range(minimum(onet_skill.SKILL_INDEX), maximum(onet_skill.SKILL_INDEX), length=100)
+pdf_normal = pdf(normal_dist, x_range)
+# plot the normal distribution
+lines!(ax, x_range, pdf_normal, color = :red, linewidth = 3, label = "Fitted Normal")
+
+
+
+fig
