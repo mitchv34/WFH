@@ -30,8 +30,6 @@ This repository contains the research project studying the effects of work from 
   - [model/](notes/model/): Notes on the structural model
   - [data/](notes/data/): Notes on data collection and processing
 
-- [tests/](tests/): Unit tests for code reliability
-
 - [literature/](literature/): Relevant papers and references
 
 - [presentations/](presentations/): Slides or posters for conferences
