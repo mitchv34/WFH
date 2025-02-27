@@ -7,7 +7,7 @@ Description: Data structures for the labor market model and simulation. Also inc
 ==========================================================================================#
 module Types
     # Load required packages
-    using Parameters, Random, YAML
+    using Parameters, Random, YAML, Distributions
     # Load functions to calibrate empirical distributions
     include("./calibrate_empirical_distributions.jl")
     # Load My Modules
@@ -51,54 +51,66 @@ module Types
             - `ψ_pdf` must be a probability distribution with non-negative values and sum to 1.
             - `h_pdf` must be a probability distribution with non-negative values and sum to 1.
     ==========================================================================================#
+    @with_kw struct Grid
+        n::Int64                                  # Number of grid points
+        min::Float64                              # Minimum value
+        max::Float64                              # Maximum value
+        values::Vector{Float64}  # Grid values
+        pdf::Union{Function, Vector{Float64}}     # PDF of the grid values
+        cdf::Union{Function, Vector{Float64}}     # CDF of the grid values
+        function Grid(
+                    values::Vector{Float64}; 
+                    pdf::Union{Function, Vector{Float64}}=zeros(length(values)), 
+                    cdf::Union{Function, Vector{Float64}}=zeros(length(values))
+            )
+            n = length(values)
+            min = minimum(values)
+            max = maximum(values)
+            if typeof(pdf) == Vector{Float64}
+                if (length(values) != n) || (length(pdf) != n) || (length(cdf) != n)
+                    throw(ArgumentError("values must have length n"))
+                end
+                if any(pdf .< 0) || any(cdf .< 0)
+                    throw(ArgumentError("pdf and cdf must be non-negative"))
+                end
+                if !isapprox(sum(pdf), 1.0, atol=1e-10)
+                    throw(ArgumentError("pdf does not sum to 1."))
+                end
+                if !isapprox( maximum( abs.( cumsum(pdf) -  cdf)), 0.0, atol=1e-10)
+                    throw(ArgumentError("pdf and cdf are not consistent"))
+                end
+                # Check if sorted and if not sort (also sort pdf and cdf)
+                if !issorted(values)
+                    sorted_indices = sortperm(values)
+                    values = values[sorted_indices]
+                    pdf = pdf[sorted_indices]
+                    cdf = cdf[sorted_indices]
+                end
+            end
+            # Create the grid object
+            new(n, min, max, values, pdf, cdf)
+        end
+    end
     @with_kw struct Primitives   
         #> Model functions
         matching_function::MatchingFunction
         production_function::ProductionFunction
         utility_function::UtilityFunction
-        
         #> Market parameters
         κ::Float64      # Vacancy posting cost
         β::Float64      # Time discount factor
         δ_bar::Float64  # Baseline job destruction rate
-        
-        #> Grid parameters
-        n_ψ::Int64      # Number of remote productivity grid points
-        n_h::Int64      # Number of skill grid points
-        h_min::Float64  # Minimum worker skill
-        h_max::Float64  # Maximum worker skill
-        n_x::Int64      # Number of utility grid points
-        x_min::Float64  # Minimum utility
-        x_max::Float64  # Maximum utility
-
-        #> Grid values
-        ψ_grid::Vector{Float64}  # Remote productivity grid
-        ψ_pdf::Vector{Float64}   # PDF of remote productivity
-        ψ_cdf::Vector{Float64}   # CDF of remote productivity
-        h_grid::Vector{Float64}  # Skill grid
-        h_pdf::Vector{Float64}   # PDF of skills
-        x_grid::Vector{Float64}  # Utility grid
-
+        #> Grids
+        ψ_grid::Grid    # Remote productivity grid
+        h_grid::Grid    # Skill grid
+        x_grid::Grid    # Utility grid
         #> Constructor with validation
         function Primitives(args...)
             prim = new(args...)
-            #? Validate grid sizes
-            ## > Firm remote work efficiency grid
-            if length(prim.ψ_grid) != prim.n_ψ || length(prim.ψ_pdf) != prim.n_ψ || length(prim.ψ_cdf) != prim.n_ψ
-                throw(ArgumentError("ψ grid dimensions mismatch"))
-            end
-            ## > Worker skill grid
-            if length(prim.h_grid) != prim.n_h || length(prim.h_pdf) != prim.n_h
-                throw(ArgumentError("h grid dimensions mismatch"))
-            end
-            ## > Utility grid
-            if length(prim.x_grid) != prim.n_x
-                throw(ArgumentError("x grid dimensions mismatch"))
-            end
             #?Validate parameter ranges
             ## > Discount factor
-            if prim.β <= 0 || prim.β >= 1
-                throw(ArgumentError("β must be in (0,1)"))
+            if prim.β < 0 || prim.β > 1
+                throw(ArgumentError("β must be in [0,1]"))
             end
             ## > Destruction rate
             if prim.δ_bar < 0 || prim.δ_bar > 1
@@ -107,20 +119,6 @@ module Types
             ## > Posting cost
             if prim.κ <= 0
                 throw(ArgumentError("κ must be positive"))
-            end
-            ## > Grids
-            if any(prim.ψ_pdf .< 0)
-                throw(ArgumentError("ψ_pdf must be a valid probability distribution with non-negative values"))
-            end
-            if !isapprox(sum(prim.ψ_pdf), 1.0, atol=1e-10)
-                throw(ArgumentError("ψ_pdf does not sum to 1."))
-            end
-
-            if any(prim.h_pdf .< 0)
-                throw(ArgumentError("h_pdf must be a valid probability distribution with non-negative values"))
-            end
-            if !isapprox(sum(prim.h_pdf), 1.0, atol=1e-10)
-                throw(ArgumentError("h_pdf does not sum to 1."))
             end
             return prim
         end
@@ -286,17 +284,43 @@ module Types
         #> Extract model grids 
         #TODO: Validate model_grids and add defaults if missing
         n_ψ     =  model_grids["n_psi"]                # Number of remote productivity grid points
+        ψ_data  =  model_grids["data_file"]            # File with the data to construct the grid
+        ψ_column=  model_grids["data_column"]          # Column with the data to construct the grid
+        ψ_weight=  model_grids["weight_column"]        # Column with the weights for the data
         n_h     =  model_grids["n_h"]                  # Number of skill grid points
-        h_min   =  model_grids["h_min"]                # Minimum worker skill
-        h_max   =  model_grids["h_max"]                # Maximum worker skill
+        h_data  =  model_grids["data_file"]  
+        h_column  =  model_grids["data_column"] 
+        h_weight  =  model_grids["weight_column"] 
         n_x     =  model_grids["n_x"]                  # Number of utility grid points
-        x_min   =  model_grids["x_min"]                # Minimum utility
-        x_max   =  model_grids["x_max"]                # Maximum utility
-        # Create grids
+        x_min   =  model_grids["x_min"]                # Minimum utility #! This is hardcoded for now 
+        x_max   =  model_grids["x_max"]                # Maximum utility #! This is hardcoded for now 
+        #? Create grids
+        #* Remote productivity grid
+        # Compute KDE for ψ
+        ψ_grid, ψ_pdf, ψ_cdf = fit_kde_psi(
+                                            ψ_data,
+                                            ψ_column,
+                                            weights_col = ψ_weight, 
+                                            num_grid_points=n_ψ,
+                                            engine="julia"
+                                            ) 
+        # Construct grid object
+        ψ_grid = Grid(ψ_grid, pdf=ψ_pdf, cdf=ψ_cdf)
+        #* Skill grid
+        h_grid, h_pdf, h_cdf = fit_distribution_to_data(
+                                    h_data,                 # Path to skill data 
+                                    h_column,               # Which column to use
+                                    "functions",            # Will I be returning a vector of values of functions that can be evaluated
+                                    "parametric";           # Parametric or non-Parametric estimation
+                                    distribution=Normal,    # If Parametric which distribution?
+                                    num_grid_points=n_h     # Number of grid points to fit the distribution
+                                )
+        # Construct grid object
+        h_grid = Grid(h_grid, pdf=h_pdf, cdf=h_cdf)
+        #* Utility grid
+        x_grid = Grid(range(x_min, x_max, length=n_x))
         
-
-
-        #> Extract model functions
+        #> Extract model functions configurations
         #TODO: Validate model_functions and add defaults if missing
         #? Matching function
         matching_function_config = model_functions["MatchingFunction"]
@@ -327,22 +351,20 @@ module Types
                                                         params_productivity_component,
                                                         params_remote_efficiency
                                                     )
+        
         #> Create Primitives object
         return Primitives(
                             #> Model functions
-                            matching_function, production_function, utility_function,
-                            #> Parameters
-                            κ, β, δ_bar,
-                            #> Grid parameters
-                            ##* Remote efficiency grid
-                            n_ψ,
-                            ##* Worker skill grid
-                            n_h, h_min, h_max,
-                            ##* Utility grid
-                            n_x, x_min, x_max,
-                            #> Grid values
-                            ψ_grid, ψ_pdf, ψ_cdf,
-                            h_grid, h_pdf,
+                            matching_function,
+                            production_function,
+                            utility_function,
+                            #> Market parameters
+                            κ,
+                            β,
+                            δ_bar,
+                            #> Grids
+                            ψ_grid,
+                            h_grid,
                             x_grid
                         )
     end

@@ -39,10 +39,14 @@ ModelConfig:
     # Parameters for the grids used in the model
     RemoteProductivityGrid:
       n_psi: 101 # Number of ψ grid points
+      data_file: "data/results/data_density_3d.csv" # File with the data to construct the grid
+      data_column: "PSI" # Column with the data to construct the grid
+      weight_column: "JOB_CREATION_BIRTHS" # Column with the weights for the data
     SkillGrid:
       n_h: 50    # Number of s grid points
-      h_min: 0.2 # Minimum s
-      h_max: 1.0 # Maximum s
+      data_file: "ESTIMATE_WFH_ABLE.csv" # File with the data to construct the grid
+      data_column: "ESTIMATE_WFH_ABLE" # Column with the data to construct the grid
+      weight_column: "_" # Column with the weights for the data (not present in the data file)
     UtilityGrid:
       n_x: 100   # Number of x grid points
       x_min: 5   # Minimum x
