@@ -1,7 +1,9 @@
 # Folders to ignore
 .vscode/
 .history/
-data/
+data/*
+!data/results/
+!data/results/**/*
 
 # API keys
 open_ai_api_key
