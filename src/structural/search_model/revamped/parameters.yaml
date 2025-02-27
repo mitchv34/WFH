@@ -1,0 +1,49 @@
+ModelConfig:
+  #? Configuration for the search model
+  #> Function definitions and parameters
+  ModelFunctions:
+    #> Definitions and parameters for the functions used in the model
+    MatchingFunction:
+      type: "CESMatching"
+      params:
+        parameter: 0.5 #! gamma in my original model
+    ProductionFunction:
+      ProductivityComponent:
+        type: "LinearProductivity" # parameter_1 + parameter_2 * h
+        params:
+          parameter_1: 0.0 
+          parameter_2: 26.0 #! A in my original model
+      RemoteEfficiencyComponent:
+        type: "LinearFirmLogWorker" # parameter_1 * psi + parameter_2 * log(h) - parameter_3 
+        params:
+          parameter_1: 1.0  #! 1 in my original model
+          parameter_2: 2.5  #! phi in my original model
+          parameter_3: 1.42 #! psi_0 in my original model
+    Utility:
+      type: "QuasiLinearSkill" # (parameter_1 + parameter_2 w^parameter_3) + (parameter_4 + parameter_5 * h^parameter_6) * (1 - α)^parameter_7
+      # Note: The utility function in the original model was x = w + c0 * (1 - α)^χ
+      params:
+        parameter_1: 0.0  #! 0.0 in my original model
+        parameter_2: 1.0  #! 1.0 in my original model
+        parameter_3: 1.0  #! 1.0 in my original model
+        parameter_4: 0.0  #! 0.0 in my original model
+        parameter_5: 16.0 #! c0 in my original model
+        parameter_6: 1.0  #! 1.0 in my original model
+        parameter_7: 1.01 #! χ in my original model
+  ModelParameters:
+    #> Parameters for the model
+    kappa: 1.37     # Vacancy posting cost
+    beta: 0.996     # Discount factor
+    delta_bar: 0.07 # Baseline job destruction rate
+  ModelGrids:
+    # Parameters for the grids used in the model
+    RemoteProductivityGrid:
+      n_psi: 101 # Number of ψ grid points
+    SkillGrid:
+      n_h: 50    # Number of s grid points
+      h_min: 0.2 # Minimum s
+      h_max: 1.0 # Maximum s
+    UtilityGrid:
+      n_x: 100   # Number of x grid points
+      x_min: 5   # Minimum x
+      x_max: 42.0 # Maximum x

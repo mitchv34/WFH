@@ -373,7 +373,7 @@ function solveSubMarketTightness!(prim::Primitives, res::Results)
         for i_x in 1:n_x
             j = J[:, i_h, i_x]
             Ej = dot(j, ψ_pdf)  # weighted average over ψ 
-            res.θ[i_h, i_x] = (Ej > κ ) ? ( (Ej / κ )^γ - 1)^(1/γ) : 0.0
+            res.θ[i_h, i_x] = (Ej > κ ) ? ( (Ej / κ )^γ - 1)^(-1/γ) : 0.0
         end
     end
 end # function solveSubMarketTightness!
