@@ -35,7 +35,7 @@ function fit_kde_psi(data_path::String, data_col::String; weights_col::String=""
     # Read data
     data = CSV.read(data_path, DataFrame)
     ψ = data[!, data_col]
-    if weights == ""
+    if weights_col == ""
         weights = ones(length(ψ))
     else
         weights = data[!, weights_col]
@@ -91,7 +91,7 @@ function fit_distribution_to_data(data_path::String, data_col::String, return_ty
     # Read data
     data = CSV.read(data_path, DataFrame)
     values = data[!, data_col]
-    if weights == ""
+    if weights_col == ""
         weights = ones(length(values))
     else
         weights = data[!, weights_col]
@@ -100,7 +100,7 @@ function fit_distribution_to_data(data_path::String, data_col::String, return_ty
         #TODO: Join with previous function to have a single function that handles both cases
     elseif method == "parametric"
         # Create grid
-        _grid = range(minimum(values), stop=maximum(values), length=num_grid_points)
+        _grid = range(minimum(values), stop=maximum(values), length=num_grid_points) |> collect
         parametric_dist = fit_mle(distribution, values, weights)
     else
         error("Invalid method specified, should be 'kde' or 'parametric'.")

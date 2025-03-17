@@ -14,9 +14,10 @@ module ModelFunctions
     # Export functions and types 
     export AbstractModelFunction, ProductionFunction, UtilityFunction
     export MatchingFunction, WageFunction
-    export evaluate, get_parameters
+    export evaluate, get_parameters, find_implied_wage, evaluate_derivative
+    export invert_vacancy_fill, eval_prob_job_find
     # Export factory functions for creating model functions
-    export create_matching_function, create_productivity_component, create_remote_efficiency, create_utility_function
+    export create_matching_function, create_production_function, create_utility_function
     #?=========================================================================================
     #? AbstractModelFunction: Base abstract type for all model functions
     #?=========================================================================================
@@ -98,11 +99,11 @@ module ModelFunctions
         end
     end # end definition
     function validate_parameters(f::LinearProductivity)
-        if f.A₀ <= 0.0
-            error("A₀ must be positive")
+        if f.A₀ < 0.0
+            error("A₀ must be non-negative")
         end
-        if f.A₁ <= 0.0
-            error("A₁ must be positive")
+        if f.A₁ < 0.0
+            error("A₁ must be non-negative")
         end
     end # end validate_parameters
     function evaluate(f::LinearProductivity, h::Float64)
@@ -115,7 +116,7 @@ module ModelFunctions
     #==========================================================================================
     # RemoteEfficiencyComponent
     #  Available implementations:
-    #  - LinearFirmLogWorker g(ψ, h) = g(ψ, h) = ν * ψ - ψ₀ + ϕ * log(h)
+    #  - LinearFirmLogWorker g(ψ, h) = ν * ψ - ψ₀ + ϕ * log(h)
     ==========================================================================================#
     # > LinearFirmLogWorker
     @with_kw struct LinearFirmLogWorker <: RemoteEfficiencyComponent
@@ -174,6 +175,8 @@ module ModelFunctions
     #?     wage w, h or α. IF THE USER SUPPLIES THE DERIVATIVE FUNCTION, ELSE: error.
     #?   - find_implied_wage: Find the wage that implies a given utility level x and remote work
     #?     level α. (IF the user defines closed form solution, ELSE: numeric solution)
+    #TODO: Lets add a property to the utility function to check if we have a formula for the wage and the derivative
+    #TODO: If not formula for derivative define a numerical derivative using FiniteDifference.jl
     #?=========================================================================================
     abstract type UtilityFunction <: AbstractModelFunction end
     #TODO: Consider separating the utility function into two parts: wage and remote work preferences
@@ -194,10 +197,10 @@ module ModelFunctions
     end
     #==========================================================================================
     # Available implementations:
-    # - PolySeparable: U(w, α, h) = (a₀ + a₁ w^η_w) + (c₀ + c₁ * h^η_h) * (1 - α)^χ
+    # - PolySeparable: U(w, α, h) = (a₀ + a₁ w^η_w) - (c₀ + c₁ * h^η_h) * (1 - α)^χ
     ==========================================================================================#
     # > QuasiLinearSkill
-    @with_kw struct QuasiLinearSkill <: UtilityFunction
+    @with_kw struct PolySeparable <: UtilityFunction
         a₀::Float64              # Base intensity of wage preference
         a₁::Float64              # Slope of wage preference
         η_w::Float64             # Curvature of wage preference
@@ -206,7 +209,7 @@ module ModelFunctions
         η_h::Float64             # Use this for curvature on h
         χ::Float64               # Curvature of remote work preference
         # Constructor
-        function QuasiLinearSkill(a₀::Float64, a₁::Float64, η_w::Float64,
+        function PolySeparable(a₀::Float64, a₁::Float64, η_w::Float64,
                 c₀::Float64, c₁::Float64, η_h::Float64, χ::Float64)
             utility = new(a₀, a₁, η_w, c₀, c₁, η_h, χ)
             # Validate parameters
@@ -215,7 +218,7 @@ module ModelFunctions
             return utility
         end
     end # end definition
-    function validate_parameters(f::QuasiLinearSkill)
+    function validate_parameters(f::PolySeparable)
         params = [f.a₀, f.a₁, f.η_w, f.c₀, f.c₁, f.η_h, f.χ]
         param_names = ["a₀", "a₁", "η_w", "c₀", "c₁", "η_h", "χ"]
         for (param, name) in zip(params, param_names)
@@ -227,29 +230,29 @@ module ModelFunctions
             error("η_h must be greater than or equal to 1")
         end
     end # end validate_parameters
-    function evaluate(f::QuasiLinearSkill, w::Float64, α::Float64, h::Float64)
+    function evaluate(f::PolySeparable, w::Float64, α::Float64, h::Float64)
         # Replace f.η with f.η_h
-        return w + (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^f.χ
+        return  (a₀ + a₁ * w^η_w) - (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^f.χ
     end # end evaluate
-    function evaluate_derivative(f::QuasiLinearSkill, argument::Union{String, Symbol}, 
+    function evaluate_derivative(f::PolySeparable, argument::Union{String, Symbol}, 
                                 w::Float64, α::Float64, h::Float64)
         # Evaluate the derivative of the utility function with respect to the given argument
         if argument == "w"
-            return 1.0
+            return f.a₁ * f.η_w * w^(f.η_w - 1) 
         elseif argument == "α"
-            return -f.χ * (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^(f.χ - 1)
+            return  f.χ * (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^(f.χ-1)
         elseif argument == "h"
-            return f.η_h * f.c₁ * h^(f.η_h - 1) * (1 - α)^f.χ
+            return -f.η_h * f.c₁ * h^(f.η_h - 1) * (1 - α)^f.χ
         else
             error("Invalid argument: $argument")
         end
     end # end evaluate_derivative
-    function find_implied_wage(f::QuasiLinearSkill, x::Float64, α::Float64, h::Float64)
-        return x - (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^f.χ
+    function find_implied_wage(f::PolySeparable, x::Float64, α::Float64, h::Float64)
+        return ((x + (f.c₀ + f.c₁ * h^f.η_h) * (1 - α)^f.χ - f.a₀ / f.a₁))^(1 / f.η_w)
     end # end find_implied_wage
     #> List of available utility functions
     utility_functions = Dict(
-        "QuasiLinearSkill" => QuasiLinearSkill
+        "PolySeparable" => PolySeparable
     )
     #?=========================================================================================
     #? MatchingFunction: Represents labor market matching technology
@@ -273,8 +276,8 @@ module ModelFunctions
             # Define the objective function:
             # We want to solve: eval_prob_vacancy_fill(f, θ) * Ej - κ = 0.
             obj_fun = (θ::Float64) -> eval_prob_vacancy_fill(f, θ) * Ej - κ
-            # Pin down the bounds for bisection.
             θ_low = 1e-8  # Lower bound
+            # Pin down the bounds for bisection.
             θ_high = 1.0  # Initial guess for upper bound
             # Increase θ_high until the objective becomes negative.
             while obj_fun(θ_high) > 0
@@ -300,7 +303,7 @@ module ModelFunctions
         maxVacancyFillRate::Float64  # Maximum rate at which vacancies are filled
         # Constructor
         function CobbDouglasMatching(γ::Float64)
-            matching = new(γ, maxVacancyFillRate = Inf)
+            matching = new(γ, Inf)
             # Validate parameters
             validate_parameters(matching)
             # Return the instance if parameters are valid
@@ -334,18 +337,16 @@ module ModelFunctions
         # Constructor
         function CESMatching(γ::Float64)
             # Compute the maximum vacancy fill rate
-            matching = new(γ, maxVacancyFillRate = Inf)
+            matching = new(γ, Inf)
             validate_parameters(matching)
             return matching
         end
     end
     function eval_prob_job_find(f::CESMatching, θ::Float64)
-        # With V = θU, p(θ) = M(V,U)/U = (θ^γ+1)^(1/γ)
-        return (θ^(f.γ) + 1)^(1/f.γ)
+        return θ * (θ^(f.γ) + 1)^(-1/f.γ)
     end
     function eval_prob_vacancy_fill(f::CESMatching, θ::Float64)
-        # q(θ)= p(θ)/θ = ((θ^γ+1)^(1/γ))/θ
-        return ((θ^(f.γ) + 1)^(1/f.γ)) / θ
+        return ((θ^(f.γ) + 1)^(-1/f.γ))
     end
     function validate_parameters(f::CESMatching)
         if f.γ <= 0.0
@@ -353,10 +354,10 @@ module ModelFunctions
         end
     end
     function invert_vacancy_fill(f::CESMatching, κ::Float64, Ej::Float64)
-        if (κ/Ej)^f.γ <= 1 || f.maxVacancyFillRate * Ej < κ
-            return 0.0
+        if Ej > κ
+            return  ( ( Ej / κ )^f.γ - 1  )^(1/f.γ)
         else
-            return (1 / ((κ / Ej)^f.γ - 1))^(1 / f.γ)
+            return 0.0
         end
     end
     #> ExponentialMatching
@@ -367,7 +368,7 @@ module ModelFunctions
         function ExponentialMatching(γ::Float64)
             # Compute the maximum vacancy fill rate
             # q(θ) = [1 - exp(-γ θ)]/θ. As θ→0, use L'Hôpital: limit = γ.
-            matching = new(γ, maxVacancyFillRate = γ)
+            matching = new(γ, γ)
             validate_parameters(matching)
             return matching
         end
@@ -398,7 +399,7 @@ module ModelFunctions
             else
                 0.0
             end
-            matching = new(γ, maxVacancyFillRate = mvr)
+            matching = new(γ, mvr)
             validate_parameters(matching)
             return matching
         end

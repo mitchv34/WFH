@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     39792,       1026]
-NotebookOptionsPosition[     36333,        963]
-NotebookOutlinePosition[     36800,        981]
-CellTagsIndexPosition[     36757,        978]
+NotebookDataLength[     44943,       1178]
+NotebookOptionsPosition[     41063,       1109]
+NotebookOutlinePosition[     41530,       1127]
+CellTagsIndexPosition[     41487,       1124]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -879,16 +879,17 @@ $CellContext`threshold2$}, $CellContext`alphaStar$[
            Pattern[$CellContext`\[Psi]$, 
             Blank[]]] := 
          Piecewise[{{
-            1 - ($CellContext`c$$ $CellContext`\[Chi]$$/($CellContext`A$$ (
-               1 - ($CellContext`\[Psi]$ - \
-$CellContext`\[Psi]0$$)^$CellContext`\[Gamma]$$)))^(1/(
+            1 - ($CellContext`c$$ ($CellContext`\[Chi]$$/($CellContext`A$$ (
+                1 - ($CellContext`\[Psi]$ - \
+$CellContext`\[Psi]0$$)^$CellContext`\[Gamma]$$))))^(1/(
               1 - $CellContext`\[Chi]$$)), $CellContext`\[Psi]0$$ + (
-                1 - $CellContext`c$$ $CellContext`\[Chi]$$/$CellContext`A$$)^(
+                1 - $CellContext`c$$ \
+($CellContext`\[Chi]$$/$CellContext`A$$))^(
                 1/$CellContext`\[Gamma]$$) < $CellContext`\[Psi]$ < \
 $CellContext`\[Psi]0$$ + 1}, {
             0, $CellContext`\[Psi]$ <= $CellContext`\[Psi]0$$ + (
-                1 - $CellContext`c$$ $CellContext`\[Chi]$$/$CellContext`A$$)^(
-                1/$CellContext`\[Gamma]$$)}, {
+                1 - $CellContext`c$$ \
+($CellContext`\[Chi]$$/$CellContext`A$$))^(1/$CellContext`\[Gamma]$$)}, {
             1, $CellContext`\[Psi]$ > $CellContext`\[Psi]0$$ + 
               1}}]; $CellContext`threshold1$ = $CellContext`\[Psi]0$$; \
 $CellContext`threshold2$ = $CellContext`\[Psi]0$$ + (
@@ -957,7 +958,152 @@ FractionBox[\(1\), \(\[Gamma]\)]]\)", 14, Gray,
    3.947348569188233*^9, 3.947348589661697*^9}, 3.947348661114024*^9, 
    3.947348705277095*^9, 3.947349962160778*^9, 3.947349995486762*^9},
  CellLabel->"Out[7]=",ExpressionUUID->"24555e2b-87a2-4698-a0b2-4af212ab04ee"]
-}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"\[CapitalPi]", "[", 
+   RowBox[{"\[Alpha]_", ",", "\[Psi]_", ",", " ", "h_"}], "]"}], ":=", 
+  RowBox[{
+   RowBox[{"A", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "-", "\[Alpha]"}], ")"}], "+", 
+      RowBox[{"\[Alpha]", " ", 
+       RowBox[{"(", 
+        RowBox[{"\[Psi]", "-", "\[Psi]0", "+", 
+         RowBox[{"\[Phi]", " ", 
+          RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}]}], ")"}]}], "-", 
+   RowBox[{"c", 
+    SuperscriptBox[
+     RowBox[{"(", 
+      RowBox[{"1", "-", "\[Alpha]"}], ")"}], 
+     "\[Chi]"]}]}]}], "\[IndentingNewLine]", 
+ RowBox[{"FullSimplify", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"Solve", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         SubscriptBox["\[PartialD]", "\[Alpha]"], 
+         RowBox[{"(", 
+          RowBox[{"\[CapitalPi]", "[", 
+           RowBox[{"\[Alpha]", ",", "\[Psi]", ",", " ", "h"}], "]"}], ")"}]}],
+         "==", "0"}], ",", "\[Alpha]"}], "]"}], "[", 
+     RowBox[{"[", 
+      RowBox[{"-", "1"}], "]"}], "]"}], "[", 
+    RowBox[{"[", 
+     RowBox[{"-", "1"}], "]"}], "]"}], "[", 
+   RowBox[{"[", 
+    RowBox[{"-", "1"}], "]"}], "]"}], "]"}]}], "Input",
+ CellChangeTimes->{{3.949776840631165*^9, 3.949776896421462*^9}, {
+  3.94977699598973*^9, 3.9497770794567432`*^9}, {3.9497771446126823`*^9, 
+  3.949777150307201*^9}, {3.949845561112109*^9, 3.949845682114685*^9}},
+ CellLabel->
+  "In[100]:=",ExpressionUUID->"65194952-d7e5-4a1f-b7df-c3985ffb6c1b"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "Solve", "ifun", 
+   "\"Inverse functions are being used by \
+\\!\\(\\*RowBox[{\\\"Solve\\\"}]\\), so some solutions may not be found; use \
+Reduce for complete solution information.\"", 2, 101, 8, 28622459570282869709,
+    "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{{3.949845639300206*^9, 3.949845682366798*^9}},
+ CellLabel->
+  "During evaluation of \
+In[100]:=",ExpressionUUID->"c4652159-6450-4185-ac09-ce188a06bead"],
+
+Cell[BoxData[
+ RowBox[{"1", "-", 
+  SuperscriptBox[
+   RowBox[{"(", 
+    FractionBox[
+     RowBox[{"A", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+        RowBox[{"\[Phi]", " ", 
+         RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}], 
+     RowBox[{"c", " ", "\[Chi]"}]], ")"}], 
+   FractionBox["1", 
+    RowBox[{
+     RowBox[{"-", "1"}], "+", "\[Chi]"}]]]}]], "Output",
+ CellChangeTimes->{{3.949845615245306*^9, 3.9498456824145203`*^9}},
+ CellLabel->
+  "Out[101]=",ExpressionUUID->"46c58f05-6391-424c-ba32-ffbab76e52f5"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"1", "-", 
+    SuperscriptBox[
+     RowBox[{"(", 
+      FractionBox[
+       RowBox[{"A", " ", 
+        RowBox[{"(", 
+         RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+          RowBox[{"\[Phi]", " ", 
+           RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}], 
+       RowBox[{"c", " ", "\[Chi]"}]], ")"}], 
+     FractionBox["1", 
+      RowBox[{
+       RowBox[{"-", "1"}], "+", "\[Chi]"}]]]}], ">", "0"}], "\[Implies]", 
+  RowBox[{
+   RowBox[{"1", ">", 
+    SuperscriptBox[
+     RowBox[{"(", 
+      FractionBox[
+       RowBox[{"A", " ", 
+        RowBox[{"(", 
+         RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+          RowBox[{"\[Phi]", " ", 
+           RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}], 
+       RowBox[{"c", " ", "\[Chi]"}]], ")"}], 
+     FractionBox["1", 
+      RowBox[{
+       RowBox[{"-", "1"}], "+", "\[Chi]"}]]]}], "\[Implies]", 
+   RowBox[{
+    RowBox[{"1", ">", 
+     FractionBox[
+      RowBox[{"A", " ", 
+       RowBox[{"(", 
+        RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+         RowBox[{"\[Phi]", " ", 
+          RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}], 
+      RowBox[{"c", " ", "\[Chi]"}]]}], "\[Implies]", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"c", " ", "\[Chi]"}], ">", 
+      RowBox[{"A", " ", 
+       RowBox[{"(", 
+        RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+         RowBox[{"\[Phi]", " ", 
+          RowBox[{"Log", "[", "h", "]"}]}]}], ")"}]}]}], "\[Implies]", 
+     RowBox[{
+      RowBox[{
+       FractionBox[
+        RowBox[{"c", " ", "\[Chi]"}], 
+        RowBox[{"A", " "}]], ">", 
+       RowBox[{"1", "-", "\[Psi]", "+", "\[Psi]0", "-", 
+        RowBox[{"\[Phi]", " ", 
+         RowBox[{"Log", "[", "h", "]"}]}]}]}], "\[Implies]", 
+      RowBox[{
+       RowBox[{"1", "+", "\[Psi]0", "-", 
+        RowBox[{"\[Phi]", " ", 
+         RowBox[{"Log", "[", "h", "]"}]}], "-", 
+        FractionBox[
+         RowBox[{"c", " ", "\[Chi]"}], 
+         RowBox[{"A", " "}]]}], "<", "\[Psi]"}]}]}]}]}]}]], "Input",
+ CellChangeTimes->{{3.949845687889723*^9, 
+  3.949845830147913*^9}},ExpressionUUID->"6b42c33b-e9ac-4569-a78a-\
+fa8cf25a66bc"]
 }, Open  ]]
 }, Open  ]]
 },
@@ -1024,8 +1170,14 @@ Cell[12245, 379, 4564, 138, 218, "Text",ExpressionUUID->"da943249-5461-4f2b-a42f
 Cell[16812, 519, 2169, 57, 263, "Input",ExpressionUUID->"01969860-8318-435b-892b-4730d09d46f1"],
 Cell[CellGroupData[{
 Cell[19006, 580, 11538, 268, 1631, "Input",ExpressionUUID->"6c051e09-cb0e-4caf-a2a2-6a4fe95405af"],
-Cell[30547, 850, 5746, 108, 886, "Output",ExpressionUUID->"24555e2b-87a2-4698-a0b2-4af212ab04ee"]
-}, Open  ]]
+Cell[30547, 850, 5740, 109, 886, "Output",ExpressionUUID->"24555e2b-87a2-4698-a0b2-4af212ab04ee"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[36324, 964, 1501, 43, 78, "Input",ExpressionUUID->"65194952-d7e5-4a1f-b7df-c3985ffb6c1b"],
+Cell[37828, 1009, 477, 11, 41, "Message",ExpressionUUID->"c4652159-6450-4185-ac09-ce188a06bead"],
+Cell[38308, 1022, 559, 16, 80, "Output",ExpressionUUID->"46c58f05-6391-424c-ba32-ffbab76e52f5"]
+}, Open  ]],
+Cell[38882, 1041, 2153, 64, 79, "Input",ExpressionUUID->"6b42c33b-e9ac-4569-a78a-fa8cf25a66bc"]
 }, Open  ]]
 }, Open  ]]
 }

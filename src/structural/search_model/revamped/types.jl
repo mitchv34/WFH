@@ -7,16 +7,15 @@ Description: Data structures for the labor market model and simulation. Also inc
 ==========================================================================================#
 module Types
     # Load required packages
-    using Parameters, Random, YAML, Distributions
+    using Parameters, Random, YAML, Distributions, Term, OrderedCollections
     # Load functions to calibrate empirical distributions
     include("./calibrate_empirical_distributions.jl")
     # Load My Modules
-    include("./model_functions.jl")
     using ..ModelFunctions
     # Import specific types from ModelFunctions
     import ..ModelFunctions: MatchingFunction, ProductionFunction, UtilityFunction
     # Export the data structures and initialization functions
-    export Primitives, Results, Worker, Economy, initializeResults
+    export Primitives, Results, Worker, Economy, initializeModel, initializeEconomy
     #?=========================================================================================
     #? Model Data Structures
     #?=========================================================================================
@@ -100,6 +99,7 @@ module Types
         κ::Float64      # Vacancy posting cost
         β::Float64      # Time discount factor
         δ_bar::Float64  # Baseline job destruction rate
+        b::Float64      # Unemployment benefits
         #> Grids
         ψ_grid::Grid    # Remote productivity grid
         h_grid::Grid    # Skill grid
@@ -268,7 +268,7 @@ module Types
     ==========================================================================================#
     function create_primitives_from_yaml(yaml_file::String)::Primitives
         #> Load configuration from YAML file
-        config = YAML.load_file(yaml_file)
+        config = YAML.load_file(yaml_file, dicttype = OrderedDict)
         model_config = config["ModelConfig"]
         #> Extract configuration components
         model_parameters = model_config["ModelParameters"]
@@ -280,20 +280,23 @@ module Types
         κ     = model_parameters["kappa"]           # Vacancy posting cost
         β     = model_parameters["beta"]            # Time discount factor
         δ_bar = model_parameters["delta_bar"]       # Baseline job destruction rate
-
+        b = model_parameters["b"]                   # Unemployment benefit
         #> Extract model grids 
         #TODO: Validate model_grids and add defaults if missing
-        n_ψ     =  model_grids["n_psi"]                # Number of remote productivity grid points
-        ψ_data  =  model_grids["data_file"]            # File with the data to construct the grid
-        ψ_column=  model_grids["data_column"]          # Column with the data to construct the grid
-        ψ_weight=  model_grids["weight_column"]        # Column with the weights for the data
-        n_h     =  model_grids["n_h"]                  # Number of skill grid points
-        h_data  =  model_grids["data_file"]  
-        h_column  =  model_grids["data_column"] 
-        h_weight  =  model_grids["weight_column"] 
-        n_x     =  model_grids["n_x"]                  # Number of utility grid points
-        x_min   =  model_grids["x_min"]                # Minimum utility #! This is hardcoded for now 
-        x_max   =  model_grids["x_max"]                # Maximum utility #! This is hardcoded for now 
+        #* Remote productivity grid parameters
+        n_ψ       =  model_grids["RemoteProductivityGrid"]["n_psi"]                # Number of remote productivity grid points
+        ψ_data    =  model_grids["RemoteProductivityGrid"]["data_file"]            # File with the data to construct the grid
+        ψ_column  =  model_grids["RemoteProductivityGrid"]["data_column"]          # Column with the data to construct the grid
+        ψ_weight  =  model_grids["RemoteProductivityGrid"]["weight_column"]        # Column with the weights for the data
+        #* Skill grid parameters
+        n_h       =  model_grids["SkillGrid"]["n_h"]                  # Number of skill grid points
+        h_data    =  model_grids["SkillGrid"]["data_file"]  
+        h_column  =  model_grids["SkillGrid"]["data_column"] 
+        h_weight  =  model_grids["SkillGrid"]["weight_column"] 
+        #* Utility grid parameters
+        n_x       =  model_grids["UtilityGrid"]["n_x"]                  # Number of utility grid points
+        x_min     =  model_grids["UtilityGrid"]["x_min"]                # Minimum utility #! This is hardcoded for now 
+        x_max     =  model_grids["UtilityGrid"]["x_max"]                # Maximum utility #! This is hardcoded for now 
         #? Create grids
         #* Remote productivity grid
         # Compute KDE for ψ
@@ -302,7 +305,7 @@ module Types
                                             ψ_column,
                                             weights_col = ψ_weight, 
                                             num_grid_points=n_ψ,
-                                            engine="julia"
+                                            engine="python"
                                             ) 
         # Construct grid object
         ψ_grid = Grid(ψ_grid, pdf=ψ_pdf, cdf=ψ_cdf)
@@ -316,40 +319,49 @@ module Types
                                     num_grid_points=n_h     # Number of grid points to fit the distribution
                                 )
         # Construct grid object
+        #if the minimum skill value h_min ≤ 0 set it to a small positive value to avoid issues with the log function
+        if h_grid[1] <= 0
+            h_grid[1] = 1e-6
+        end
         h_grid = Grid(h_grid, pdf=h_pdf, cdf=h_cdf)
         #* Utility grid
-        x_grid = Grid(range(x_min, x_max, length=n_x))
+        x_grid = range(x_min, x_max, length=n_x) |> collect
+        # Create a unifor distribution for the utility grid (since it not important)
+        x_pdf = fill(1/n_x, n_x)
+        x_cdf = cumsum(x_pdf)
+        # Construct grid object
+        x_grid = Grid(x_grid, pdf=x_pdf, cdf=x_cdf)
         
         #> Extract model functions configurations
         #TODO: Validate model_functions and add defaults if missing
         #? Matching function
         matching_function_config = model_functions["MatchingFunction"]
         matching_function_type = matching_function_config["type"]
-        matching_function_params = matching_function_config["params"]
+        matching_function_params = matching_function_config["params"] |> values |> collect
         # Initialize matching function
-        matching_function = create_matching_function(matching_function_type, matching_function_params)
+        matching_function = create_matching_function(matching_function_type, Float64.(matching_function_params) )
         #? Utility function
         utility_function_config = model_functions["UtilityFunction"]
         utility_function_type = utility_function_config["type"]
-        utility_function_params = utility_function_config["params"]
+        utility_function_params = utility_function_config["params"] |> values |> collect
         # Initialize utility function
-        utility_function = create_utility_function(utility_function_type, utility_function_params)
+        utility_function = create_utility_function(utility_function_type, Float64.(utility_function_params) )
         #? Production function
         production_function_config = model_functions["ProductionFunction"]
         #* Productivity component
         productivity_component_config = production_function_config["ProductivityComponent"]
         productivity_component_type = productivity_component_config["type"]
-        productivity_component_params = productivity_component_config["params"]
+        productivity_component_params = productivity_component_config["params"] |> values |> collect
         #* Remote efficiency component
         remote_work_component_config = production_function_config["RemoteEfficiencyComponent"]
         remote_work_component_type = remote_work_component_config["type"]
-        remote_work_component_params = remote_work_component_config["params"]
+        remote_work_component_params = remote_work_component_config["params"] |> values |> collect
         # Initialize production function
         production_function = create_production_function(
-                                                        type_productivity_component,
-                                                        type_remote_efficiency,
-                                                        params_productivity_component,
-                                                        params_remote_efficiency
+                                                        productivity_component_type,
+                                                        remote_work_component_type,
+                                                        Float64.(productivity_component_params),
+                                                        Float64.(remote_work_component_params)
                                                     )
         
         #> Create Primitives object
@@ -362,6 +374,7 @@ module Types
                             κ,
                             β,
                             δ_bar,
+                            b,
                             #> Grids
                             ψ_grid,
                             h_grid,
@@ -381,23 +394,40 @@ module Types
         if !(prim isa Primitives)
             throw(ArgumentError("Expected Primitives type"))
         end
-        #* Unpack model primitives
-        @unpack n_ψ, n_h, n_x, δ_bar, ψ_grid, h_grid, ψ₀, A, χ, c0, ϕ = prim
+        #* Get grid sizes
+        n_ψ, n_h, n_x = prim.ψ_grid.n, prim.h_grid.n, prim.x_grid.n
         #* Initialize arrays
         J = zeros(n_ψ, n_h, n_x)
         θ = zeros(n_h, n_x)
-        α_policy = zeros(n_ψ, n_h)
-        w_policy = zeros(n_ψ, n_h, n_x)
-        δ_grid = δ_bar .* ones(n_ψ, n_h, n_x)
+        δ_grid = prim.δ_bar .* ones(n_ψ, n_h, n_x)
         W = zeros(n_ψ, n_h, n_x)
         U = zeros(n_h)
         x_policy = zeros(Int, n_h)
-        #* Calculate thresholds based on the current production function
-        #! This is a simplified version - you should adapt based on your specific production function
-        ψ_top = [(ψ₀ + 1) - ϕ * log(h) for h in h_grid]
-        ψ_bottom = [ψ_top[i_h] - c0 * χ / (A * h) for (i_h, h) in enumerate(h_grid)]
+        #* Calculate remote work thresholds and optimal policy based on model functions
+        ψ_bottom, ψ_top, α_policy = find_thresholds_and_optimal_remote_policy(prim)
+        #* Compute optimal wage policy based on model functions and optimal remote policy
+        w = (i_ψ, i_h, i_x) -> find_implied_wage(prim.utility_function, prim.x_grid.values[i_x], α_policy[i_ψ, i_h], prim.h_grid.values[i_h])
+        w_policy = zeros(Float64, n_ψ, n_h, n_x) 
+        for i_ψ in 1:n_ψ
+            for i_h in 1:n_h
+                for i_x in 1:n_x
+                    w_policy[i_ψ, i_h, i_x] = w(i_ψ, i_h, i_x)
+                end
+            end
+        end
         #* Return results object
         return Results(J, θ, W, U, α_policy, w_policy, δ_grid, x_policy, ψ_bottom, ψ_top)
+    end
+    #==========================================================================================
+    #description: 
+    ==========================================================================================#
+    function initializeModel(yaml_file::String)::Tuple{Primitives, Results}
+        #> Create primitives from YAML file
+        prim = create_primitives_from_yaml(yaml_file)
+        #> Initialize results
+        res = initializeResults(prim)
+        #> Return primitives and results
+        return prim, res
     end
     #==========================================================================================
     #* initializeEconomy(prim::Primitives, res::Results; N::Int=1000, T::Int=100, seed::Int=42)
@@ -435,5 +465,104 @@ module Types
                         x_grid, p, δ_bar, θ, α_policy, w_policy,
                         job_finding, unemployment_rate, remote_work
                     )
+    end
+    #?=========================================================================================
+    #? Helper Functions
+    #?=========================================================================================
+    #*=========================================================================================
+    #* find_thresholds_and_optimal_remote_policy(prim::Primitives, res::Results)::Tuple{Vector{Float64}, Vector{Float64},Matrix{Float64}}
+    #*    Find the thresholds for remote work based on the model functions and parameters.
+    #*    Also, compute the optimal remote work policy for each worker type.
+    #* Arguments
+    #*    - prim::Primitives: Model primitives
+    #*=========================================================================================
+    function find_thresholds_and_optimal_remote_policy(prim::Primitives)::Tuple{Vector{Float64}, Vector{Float64},Matrix{Float64}}
+        # Unpack model functions
+        @unpack production_function, utility_function, ψ_grid, h_grid = prim
+        # Define functions for evaluation
+        A = h -> evaluate(production_function.productivity, h)
+        g = (ψ, h) -> evaluate(production_function.remote_efficiency, ψ, h)
+        # We know that ∂Y/∂α = A(h) - g(ψ, h) 
+        dY_dα = (h, ψ) -> A(h) * (g(ψ, h) - 1.0)
+        # And ∂Π/∂α = ∂Y/∂α - ∂w/∂α = ∂Y/∂α - ∂w/∂α 
+        # Interior solution means that ∂Π/∂α = 0 ⟹ Φ(h, ψ) = ∂w/∂α
+        # By the implicit function theorem, if ∂u/∂w ≠ 0 then ∂w/∂α = - ∂u/∂α / ∂u/∂w
+        #! For this function I have the derivative of the wage function with respect to α and w in general i need to do it numerically
+        du_dw = (α, h) -> evaluate_derivative(utility_function, "w", 0.0, α, h) # derivative of u with respect to w (here the value of w is not important)
+        du_dα = (α, h) -> evaluate_derivative(utility_function, "α", 0.0, α, h) # derivative of u with respect to α (here the value of w is not important)# 
+        # Define the derivative of the wage function wrt as a function of h and ψ
+        dw_dα = (α, h) -> - du_dα(α, h) / du_dw(α, h)
+        # Conditions for interior solution are:
+        # [-] ∂Y/∂α(h,ψ) > min{ ∂w/∂α(0, h), ∂w/∂α(1, h) }
+        # [-] ∂Y/∂α(h,ψ) < max{ ∂w/∂α(0, h), ∂w/∂α(1, h) }
+        # Pre-allocate arrays for thresholds ψ_bottom(h) and ψ_top(h)
+        ψ_bottom = zeros(h_grid.n)
+        ψ_top = zeros(h_grid.n)
+        # Find the admisible range for ψ
+        # Find thresholds for each skill level
+        for (i, h_val) in enumerate(h_grid.values)
+            # Evaluate ∂Y/∂α(h,ψ) - min{ ∂w/∂α(0, h), ∂w/∂α(1, h) } in the minimum and maximum values of ψ
+            dw_min = min(dw_dα(0.0, h_val), dw_dα(1.0, h_val))
+            # if (dY_dα(h_val, ψ_grid.min) - dw_min) * (dY_dα(h_val, ψ_grid.max) - dw_min) < 0
+                # If the product is negative then there is a solution in the interval
+                # Define the objective function to solve for the threshold
+                ψ_bottom_obj = (ψ) -> dY_dα(h_val, ψ) - dw_min
+                # Find the zero of the objective function Bisecting the [ψ_min, ψ_max] interval,
+                # Bisection will work since conditions guarantee that wage is monotonic in α
+                ψ_bottom[i] = find_zero(ψ -> ψ_bottom_obj(ψ), (-Inf, Inf), Bisection())
+            # else
+                # If the product is positive then there is no solution in the interval 
+                # The interpretation is that there is no value of ψ ∈ [ψ_min, ψ_max] that satisfies the condition
+                # This means that there all firms offer full in person work to workers with skill level h
+                # This is equivalent to setting:
+                # ψ_bottom[i] = Inf # Set to a value ψ > ψ_max
+            # end
+            # Evaluate ∂Y/∂α(h,ψ) - max{ ∂w/∂α(0, h), ∂w/∂α(1, h) } in the minimum and maximum values of ψ
+            dw_max = max(dw_dα(0.0, h_val), dw_dα(1.0, h_val))
+            # if (dY_dα(h_val, ψ_grid.min) - dw_max) * (dY_dα(h_val, ψ_grid.max) - dw_max) < 0
+                # If the product is negative then there is a solution in the interval
+                # Define the objective function to solve for the threshold
+                ψ_top_obj = (ψ) -> dY_dα(h_val, ψ) - dw_max
+                # Find the zero of the objective function Bisecting the [ψ_min, ψ_max] interval,
+                # Bisection will work since conditions guarantee that wage is monotonic in α
+                ψ_top[i] = find_zero(ψ -> ψ_top_obj(ψ), (-Inf, Inf), Bisection())
+            # else
+                # If the product is positive then there is no solution in the interval 
+                # The interpretation is that there is no value of ψ ∈ [ψ_min, ψ_max] that satisfies the condition
+                # This means that all firms offer full remote work to workers with skill level h
+                # This is equivalent to setting:
+                # ψ_top[i] = Inf 
+            # end
+        end
+        # Pre-allocate array for optimal remote work policy α_policy(ψ, h)
+        α_policy = zeros(ψ_grid.n, h_grid.n)
+        # Find the optimal remote work policy for each firm type and skill level
+        for (i_ψ, ψ_val) in enumerate(ψ_grid.values)
+            for (i_h, h_val) in enumerate(h_grid.values)
+                # Define the objective function for the optimal remote work policy
+                α_obj = (α) -> dY_dα(h_val, ψ_val) - dw_dα(α, h_val)
+                # If ψ ≤ ψ_bottom(h) then α = 0
+                if ψ_val ≤ ψ_bottom[i_h]
+                    α_policy[i_ψ, i_h] = 0.0
+                # If ψ ≥ ψ_top(h) then α = 1
+                elseif ψ_val ≥ ψ_top[i_h]
+                    α_policy[i_ψ, i_h] = 1.0
+                else
+                    # Otherwise, find the zero of the objective function
+                    try
+                        α_policy[i_ψ, i_h] = find_zero(α -> α_obj(α), (0.0, 1.0), Bisection())
+                    catch e
+                        if isa(e, ArgumentError)
+                            # Assign NaN if no solution found
+                            α_policy[i_ψ, i_h] = NaN
+                        else
+                            rethrow(e)
+                        end
+                    end
+                end
+                
+            end
+        end
+        return ψ_bottom, ψ_top, α_policy
     end
 end # module Types
