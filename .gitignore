@@ -15,6 +15,9 @@ data/*
 # Copilot conversation logs
 .copilot-conversations/
 
+# Create folder
+.create/
+
 # API keys
 open_ai_api_key
 
