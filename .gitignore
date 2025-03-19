@@ -9,6 +9,12 @@ data/*
 !data/onet_data/processed/reference/
 !data/onet_data/processed/reference/*
 
+# Obsidian folders
+.obsidian/
+
+# Copilot conversation logs
+.copilot-conversations/
+
 # API keys
 open_ai_api_key
 
@@ -525,3 +531,9 @@ TSWLatexianTemp*
 # option is specified. Footnotes are the stored in a file with suffix Notes.bib.
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
+
+
+
+
+# Ignore Smart Environment folder
+.smart-env
