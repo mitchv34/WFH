@@ -4,6 +4,10 @@
 data/*
 !data/results/
 !data/results/**/*
+!data/onet_data/
+!data/onet_data/processed/
+!data/onet_data/processed/reference/
+!data/onet_data/processed/reference/*
 
 # API keys
 open_ai_api_key
