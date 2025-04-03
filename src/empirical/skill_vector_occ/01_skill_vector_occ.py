@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 import logging
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from scipy.linalg import orthogonal_procrustes
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 # Set up logging
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -91,34 +95,85 @@ def append_and_create_wide(files_to_read, anchor_cols=ANCHOR_COLS):
     
     return df_wide.set_index('ONET_SOC_CODE')
 
-def process_skill_vectors(df, anchor_cols, n_components=3,  named_factors=True):
+def stata_compatible_pca(df, score_cols, n_components=3):
     """
-    Process skill vectors using PCA: runs PCA, reparameterizes loadings based on anchor columns,
+    Implement PCA in a way that matches Stata's approach
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing the variables for PCA
+    score_cols : list
+        List of column names to include in PCA
+    n_components : int
+        Number of components to extract
+        
+    Returns:
+    --------
+    tuple
+        (loadings_df, scores_df, ALPHA0, A) - all matrices needed for further processing
+    """
+    # Standardize the data (Stata's PCA typically uses correlation matrix)
+    X = df[score_cols].values
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Run PCA without scaling by eigenvalues
+    pca = PCA(n_components=n_components)
+    scores = pca.fit_transform(X_scaled)
+    
+    # Get eigenvalues (variances) and eigenvectors directly
+    eigenvalues = pca.explained_variance_
+    
+    # Stata works with eigenvectors directly (not scaled by sqrt of eigenvalues)
+    # In sklearn, components_ are already scaled by sqrt(eigenvalues), so we need to undo this
+    eigenvectors = pca.components_.T * np.sqrt(eigenvalues)
+    
+    # Create dataframe of loadings (eigenvectors)
+    loadings_df = pd.DataFrame(
+        eigenvectors, 
+        index=score_cols,
+        columns=[f'Comp{i+1}' for i in range(n_components)]
+    )
+    
+    # Calculate scores directly using eigenvectors (not scaled components)
+    # This matches Stata's approach
+    scores_direct = X_scaled @ eigenvectors
+    
+    # Create dataframe of scores
+    scores_df = pd.DataFrame(
+        scores_direct,
+        index=df.index,
+        columns=[f'Comp{i+1}' for i in range(n_components)]
+    )
+    
+    # Return matrices and dataframes needed for next steps
+    return loadings_df, scores_df, eigenvectors, eigenvectors[:n_components, :]
+
+def process_skill_vectors_python(df, anchor_cols, n_components=3):
+    """
+    Process skill vectors using Python PCA implementation: runs PCA, reparameterizes loadings based on anchor columns,
     computes factor scores, normalizes them, and exports the result.
     
     Parameters:
     -----------
     df : pandas DataFrame
         Input DataFrame containing skill measurements
-    score_cols : list
-        List of columns to use for PCA
-    identifier_col : str
-        Column name for occupational identifiers
     anchor_cols : list
         Columns to anchor the PCA process
     n_components : int, default=3
         Number of PCA components
-    output_file : str, default=OUTPUT_FILE
-        File path for exporting results
         
     Returns:
     --------
     pandas DataFrame
-        Processed DataFrame with skill vectors
+        Processed DataFrame with skill vectors (unnnamed columns)
     """
+    # Reorder columns to have anchor columns first
+    df_pca = reorder_columns(df, anchor_cols)
     # Drop rows with missing values in the score columns
-    df_pca = df.dropna()
-    
+    df_pca = df_pca.dropna()
+
     # Fit PCA with n_components components
     pca = PCA(n_components=n_components)
     pca.fit(df_pca)
@@ -140,61 +195,185 @@ def process_skill_vectors(df, anchor_cols, n_components=3,  named_factors=True):
     # Create DataFrame with the original index
     result_df = pd.DataFrame(factor_scores, index=df_pca.index)
     
-    # If named factors is true we will use CONTENT_MODEL_REFERENCE to name the factors as the anchor columns
+    # Set anchor columns as names 
+    result_df.columns = ANCHOR_COLS
+
+    return result_df
+
+def process_skill_vectors_stata(df, anchor_cols, n_components=3):
+    """
+    Process skill vectors using Stata's approach to PCA
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing O*NET scores with occupations as index
+    anchor_cols : list
+        List of column names to use as anchors for the factors
+    n_components : int, default=3
+        Number of components to extract
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with occupation codes as index and normalized skill indices (unnamed columns)
+    """
+    # Get all score columns
+    score_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    # Reorder columns to match Stata's ordering (anchor columns first)
+    cols_reordered = anchor_cols + [col for col in score_cols if col not in anchor_cols]
+    
+    # Run PCA Stata-style
+    loadings_df, scores_df, ALPHA0, A = stata_compatible_pca(
+        df, cols_reordered, n_components=n_components
+    )
+    
+    # Continue with the transformation as in Stata
+    # Compute ALPHA = ALPHA0 * inv(A)
+    ALPHA = ALPHA0 @ np.linalg.inv(A)
+    
+    # Calculate factor scores as in Stata
+    X_scaled = StandardScaler().fit_transform(df[cols_reordered].values)
+    factor_scores = X_scaled @ ALPHA
+    
+    # Create a DataFrame with the factor scores
+    result_df = pd.DataFrame(
+        factor_scores, 
+        index=df.index,
+        columns=range(n_components)
+    )
+    
+    # Normalize each factor to range from 0 to 1
+    for col in range(n_components):
+        col_min = result_df[col].min()
+        col_max = result_df[col].max()
+        result_df[col] = (result_df[col] - col_min) / (col_max - col_min)
+    
+    # Drop rows with missing values in any of the factors
+    result_df = result_df.dropna()
+    
+    # Use the anchor columns to name the factors
+    result_df.columns = anchor_cols
+
+    return result_df
+
+def add_names_and_titles(skill_vectors, add_occupation_titles=False, named_factors=False):
+    """
+    Add names to skill vector columns and/or add occupation titles
+    
+    Parameters:
+    -----------
+    skill_vectors : pandas DataFrame
+        DataFrame containing the skill vectors
+    anchor_cols : list, optional
+        If provided, use these columns to name the factors
+    named_factors : bool, default=False
+        Whether to use the content model reference to name the columns
+        
+    Returns:
+    --------
+    pandas DataFrame
+        DataFrame with named columns and/or occupation titles
+    """
+    result_df = skill_vectors.copy()
+    
+    if add_occupation_titles:
+        # Add occupation titles
+        try:
+            occupations = pd.read_csv(os.path.join(REFERENCE_DATA_DIR, 'OCCUPATION_DATA.csv')).set_index('ONET_SOC_CODE')
+            result_df = result_df.join(occupations["OCCUPATION_TITLE"], how='left')
+        except Exception as e:
+            logging.warning(f"Could not add occupation titles: {e}")
+        
+    # Add names to columns if requested
     if named_factors:
-        # Load the content model reference
-        content_model_reference = pd.read_csv(os.path.join(REFERENCE_DATA_DIR, 'CONTENT_MODEL_REFERENCE.csv'))
-        # Create a mapping from ELEMENT_ID to ELEMENT_NAME
-        anchor_mapping = dict(zip(content_model_reference.ELEMENT_ID, content_model_reference.ELEMENT_NAME))
-        # Reorder names to match the order in anchor_cols
-        names = [anchor_mapping[ac] for ac in anchor_cols if ac in anchor_mapping]
-        # Rename columns
-        result_df.columns = names
+        try:
+            # Load the content model reference
+            content_model_reference = pd.read_csv(os.path.join(REFERENCE_DATA_DIR, 'CONTENT_MODEL_REFERENCE.csv'), usecols=[ 'ELEMENT_ID' , "ELEMENT_NAME"])
+            # Create a mapping from ELEMENT_ID to ELEMENT_NAME
+            element_mapping = content_model_reference.set_index('ELEMENT_ID')['ELEMENT_NAME'].to_dict()
+            # If we have names for all our numeric columns, rename them
+            result_df.rename(columns=element_mapping, inplace=True)
+        except Exception as e:
+            logging.warning(f"Could not name factors: {e}")
     
     return result_df
 
-def main():
-    """Main function to process ONET data"""
+def main(method='python', add_occupation_titles=True, named_factors=False):
+    """
+    Main function to process ONET data
+    
+    Parameters:
+    -----------
+    method : str, default='python'
+        Method to use for processing skill vectors. Options: 'python', 'stata'
+    add_names : bool, default=True
+        Whether to add occupation titles
+    named_factors : bool, default=False
+        Whether to use the content model reference to name the columns
+    
+    Returns:
+    --------
+    tuple
+        (onetscores_wide, skill_vectors) - wide format data and processed skill vectors
+    """
     # Define file paths
-    files_to_read = ['WORK_CONTEXT', 'WORK_ACTIVITIES', 'SKILLS', 'ABILITIES', 'KNOWLEDGE']
+    files_to_read = ['WORK_ACTIVITIES', 'SKILLS', 'ABILITIES', 'KNOWLEDGE']
 
     # Append and create wide format
-    onetscores_wide = append_and_create_wide(files_to_read, ANCHOR_COLS)
-    # Process skill vectors
-    skill_vectors = process_skill_vectors(onetscores_wide, ANCHOR_COLS)
+    onetscores_wide = append_and_create_wide(files_to_read, ANCHOR_COLS)    
+    
+    # Process skill vectors according to the specified method
+    if method.lower() == 'stata':
+        skill_vectors = process_skill_vectors_stata(onetscores_wide, ANCHOR_COLS)
+    else:  # default to python
+        skill_vectors = process_skill_vectors_python(onetscores_wide, ANCHOR_COLS)
+    
+    # Add names and titles if requested
+    skill_vectors = add_names_and_titles(skill_vectors, 
+                                        add_occupation_titles = add_occupation_titles , 
+                                        named_factors = named_factors)
+    
     return onetscores_wide, skill_vectors
+
 # %%
-# if __name__ == "__main__":
-    # Read and clean data
-onetscores_wide, skill_vectors = main()
+# Run the main function 
+onetscores_wide, skill_vectors_python = main(method='python', add_occupation_titles=True, named_factors=True)
+onetscores_wide, skill_vectors_stata = main(method='stata', add_occupation_titles=True, named_factors=True)
 
-# Load occupation titles 
-occupations = pd.read_csv(os.path.join(REFERENCE_DATA_DIR, 'OCCUPATION_DATA.csv')).set_index('ONET_SOC_CODE')
-# Merge with skill vectors
-skill_vectors = skill_vectors.join(occupations["OCCUPATION_TITLE"], how='left')
+# %%
+sns.pairplot(skill_vectors_python, diag_kind='kde')
+plt.show()
+# %%
+sns.pairplot(skill_vectors_stata, diag_kind='kde')
+plt.show()
 
-# For each dimension of the skill vector print the top 5 and bottom 5 occupations
-for c in skill_vectors.columns:
-    # Skip OCCUPATION_TITLE
+# %%
+# Compare the top 10 occupations on each skill dimension with each method
+for c in skill_vectors_python.columns:
     if c == "OCCUPATION_TITLE":
         continue
-    print(f"Top 5 and bottom 5 occupations for {c}")
-    print("TOP 5:")
-    print(
-        skill_vectors.sort_values(by=c, ascending=False).head(5)
+    # Sort both dataframes by the current column
+    sorted_python = skill_vectors_python.sort_values(by=c, ascending=False)
+    sorted_stata = skill_vectors_stata.sort_values(by=c, ascending=False)
+    # get the top 10 occupations and their values
+    print(f"Top 10 occupations for {c} skill dimension")
+    top_python = sorted_python[["OCCUPATION_TITLE", c]].head(10).reset_index(drop=True)
+    top_stata = sorted_stata[["OCCUPATION_TITLE", c]].head(10).reset_index(drop=True)
+    # Put them in a single dataframe use concatenate since the index is the same
+    display(
+        pd.concat([top_python, top_stata], axis=1)
     )
-    print("BOTTOM 5:")
-    print(
-        skill_vectors.sort_values(by=c, ascending=True).head(5)
+    # repeat for the bottom 10 occupations
+    print(f"Bottom 10 occupations for {c} skill dimension")
+    bottom_python = sorted_python[["OCCUPATION_TITLE", c]].tail(10).reset_index(drop=True)
+    bottom_stata = sorted_stata[["OCCUPATION_TITLE", c]].tail(10).reset_index(drop=True)
+    # Put them in a single dataframe use concatenate since the index is the same
+    display(
+        pd.concat([bottom_python, bottom_stata], axis=1)
     )
-    print("\n\n")
-
-
 # %%
-# # Plot using seaborn the correlations between three three components 
-import matplotlib.pyplot as plt
-import seaborn as sns
+# Load the telewokability estimates
 
-
-sns.pairplot(skill_vectors, diag_kind='kde', markers='o')
-
+    
