@@ -1,0 +1,35 @@
+---
+title: "Remote Work and the Wage Premium"
+mainfont: "Latin Modern Roman"
+author: 
+    - "Mitchell Valdes-Bobes"
+    - "Anna Lukianova"
+format:
+    pdf:
+        documentclass: article
+        pdf-engine: lualatex
+        header-includes:
+          - \usepackage{sectsty}
+          - \allsectionsfont{\fontspec{Latin Modern Roman}}
+          - \usepackage{titling}
+          - \pretitle{\fontspec{Latin Modern Roman}\Huge\bfseries}
+          - \posttitle{\par}
+fontsize: 11pt
+geometry: "top=0.4in, bottom=1in, left=1in, right=1in"
+---
+
+Remote work, once an ancillary option, has now become a defining feature of modern labor markets. Despite being viewed as an amenity—implying that workers should accept lower wages—the empirical evidence reveals that remote workers earn higher wages even after accounting for demographics and detailed occupational controls. This proposal aims to resolve this apparent paradox by developing a refined teleworkability index that captures the nuanced differences in occupational tasks and explores the dynamics of firm–worker matching.
+
+The central focus of the research is to understand why remote workers, despite the amenity nature of remote work, command higher wages. The project investigates the trade-off firms face: while remote work may entail productivity costs due to coordination challenges or reduced match quality, these very arrangements can attract high-skilled workers who, in turn, command a wage premium. Additionally, the study examines how varying calibrations of worker skill and remote work feasibility affect wage outcomes, offering a comprehensive insight into the labor market dynamics.
+
+To analyze these mechanisms, the proposal adopts a directed search model inspired by Menzio and Shi (2010). In this framework, workers are characterized by observable skills and firms by their remote work efficiency. The production function is defined as
+
+$$
+Y(\alpha \mid \psi, h) = A(h) \left((1 - \alpha) + \alpha \cdot g(\psi, h)\right),
+$$
+
+$g(\psi, h)$ captures the remote work efficiency that improves with higher firm type and worker skill. The model integrates a search process in which workers seek bundled offers combining wage and remote flexibility. Firms, after matching with a worker, determine the optimal mix of wage and remote work fraction to maximize profits, balancing the benefits of attracting high-skilled workers against the productivity losses inherent in remote work.
+
+Empirically, the research will combine individual-level wage data from sources such as the American Community Survey with detailed occupation-level data from ONET and BLS. This integration will allow for the validation of the novel teleworkability index, which, unlike existing binary measures, captures a continuous spectrum of remote work feasibility. Preliminary evidence suggests that once deeper occupational controls are applied, the wage premium associated with remote work is largely driven by the self-selection of higher-skilled workers. By calibrating the structural model with this refined measure, the study expects to demonstrate that firms accept a productivity cost in offering remote flexibility and that different calibrations of worker skill yield distinct equilibrium wage outcomes.
+
+In summary, this research seeks to reconcile the contradiction between the amenity nature of remote work and the observed wage premium. By integrating a novel teleworkability measure into a comprehensive structural model of the labor market, the study will shed light on the trade-offs and mechanisms driving wage differences. The findings are anticipated to provide valuable insights for policymakers and firms as they navigate the evolving landscape of remote work and its implications for productivity and labor market dynamics.

@@ -4,7 +4,7 @@ ModelConfig:
   ModelFunctions:
     #> Definitions and parameters for the functions used in the model
     MatchingFunction:
-      type: "CESMatching"
+      type: "LogisticMatching"
       params:
         gamma: 0.5
     ProductionFunction:
@@ -44,7 +44,7 @@ ModelConfig:
       data_column: "PSI" # Column with the data to construct the grid
       weight_column: "JOB_CREATION_BIRTHS" # Column with the weights for the data
     SkillGrid:
-      n_h: 70    # Number of s grid points
+      n_h: 70    # Number of h grid points
       data_file: "data/results/wfh_estimates.csv" # File with the data to construct the grid
       data_column: "ESTIMATE_WFH_ABLE" # Column with the data to construct the grid
       weight_column: "_" # Column with the weights for the data (not present in the data file)

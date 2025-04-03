@@ -1,0 +1,67 @@
+---
+title: "Remote Work and the Wage Premium"
+mainfont: "Latin Modern Roman"
+author: 
+    - "Mitchell Valdes-Bobes"
+    - "Anna Lukianova"
+format:
+    pdf:
+        documentclass: article
+        pdf-engine: lualatex
+        header-includes:
+          - \usepackage{sectsty}
+          - \allsectionsfont{\fontspec{Latin Modern Roman}}
+          - \usepackage{titling}
+          - \pretitle{\fontspec{Latin Modern Roman}\Huge\bfseries}
+          - \posttitle{\par}
+fontsize: 11pt
+geometry: "top=0.5in, bottom=1in, left=1in, right=1in"
+---
+
+# Introduction and Motivation
+
+Remote work has rapidly evolved from a rarely used option into a salient feature of today’s labor markets. A fundamental puzzle arises: if remote work is treated as an amenity, then one would expect workers who choose remote work to accept lower wages compared to those working on-site. Yet, empirical evidence shows that—even after controlling for demographics and detailed occupations—remote workers tend to earn higher wages. This paradox suggests that firms face inherent tradeoffs in offering remote flexibility: they may sacrifice productivity via additional coordination costs or reduced match quality, yet still attract high-ability workers who can command a wage premium.
+# Research Questions and Contribution
+
+This project aims to develop a refined teleworkability index that captures the nuanced differences in how occupational tasks enable remote work. Our improved measure will help us address the following central issues:
+
+- Why do workers choosing remote work, despite the amenity nature of remote flexibility, earn higher wages once detailed occupation controls and demographics are included?
+- Can we reconcile the puzzle by examining the trade-off faced by firms: sacrificing productivity (and thus offering lower wages) in order to provide remote work options, versus the competitive pressure to attract higher-skilled workers who command wage premiums?
+- How sensitive are wage outcomes to alternative calibrations of worker skill and remote work feasibility?
+
+By integrating a novel data-driven teleworkability index with structural elements that account for firm–worker matching dynamics and worker productivity, this research will clarify whether and how firms strategically sacrifice productivity to offer remote flexibility while still attracting high-wage, high-ability workers.
+
+# Theoretical Framework
+
+To analyze these mechanisms, I propose a directed search model in the spirit of Menzio and Shi (2010). In this framework, workers differ in observable skill levels ($h$), and firms differ in their remote work efficiency ($\psi$). The output of a firm–worker match is defined as
+
+$$
+Y(\alpha \mid \psi, h) = A(h) \left((1 - \alpha) + \alpha \cdot g(\psi, h)\right),
+$$
+
+where $\alpha$ is the fraction of work conducted remotely and $g(\psi, h)$ captures the remote work efficiency, which increases with both higher firm type and worker skill.
+
+An important feature of the model is the search process. Workers do not separately search for a wage or a remote work fraction; instead, they direct their search toward overall job offers—bundles that jointly include a wage and remote flexibility. In this stochastic matching environment, a worker’s match with a firm of a given remote efficiency ($\psi$) is random, and the value of a job is determined by the total benefits the worker receives.
+
+On the firm side, once a match is made, firms choose the optimal combination of wage ($w$) and remote work fraction ($\alpha$) to maximize profits based on the production function $Y(\alpha \mid \psi, h)$. This choice reflects the inherent trade-offs: while offering remote work may help attract higher-skilled workers who value flexibility, it also may entail productivity losses (for instance, through additional coordination costs or reduced match quality). Hence, firms balance these conflicting forces to decide on an optimal $\alpha$.
+
+Within this setting, two opposing forces operate:
+
+1. **Worker Incentives:** Higher-skilled workers are more likely to benefit from remote work and command a wage premium.
+2. **Firm Trade-offs:** Firms that offer remote work may suffer a drop in productivity, necessitating lower wage offers to compensate for flexible yet less productive arrangements.
+
+The model, detailed further in the attached pdf, provides a structured means to explore how these mechanisms interact and how the interplay between worker ability, firm remote efficiency, and the overall job bundle determines equilibrium outcomes.
+
+# Empirical Strategy and Expected Outcomes
+
+This research will combine individual-level wage data (e.g., from the American Community Survey) with detailed occupation-level information (from ONET and BLS) to validate the new teleworkability index. Unlike existing measures that treat teleworkability in a binary or coarse manner, our index will capture the continuous spectrum of remote work feasibility. Preliminary evidence suggests that once deeper occupation controls are applied, remote work is associated with a wage premium, implying that high-ability workers self-select into remote arrangements despite the potential wage discount from reduced productivity.
+
+We expect that by calibrating the model with our refined measure, we will demonstrate that:
+
+- Firms accept a productivity cost in order to offer remote flexibility.
+- The wage premium observed for remote workers is driven in part by the selection of higher-skilled workers.
+- Alternative calibrations of worker skill will yield different equilibrium wage outcomes, thus underscoring the importance of our improved teleworkability index.
+
+# Conclusion
+
+This proposal seeks to resolve the contradiction between the amenity nature of remote work and the observed wage premium for remote workers. By developing and incorporating a refined teleworkability measure into a structural model of the labor market, we aim to reveal the underlying mechanisms that drive the wage differences. Our work will provide crucial insights for policymakers and firms as they navigate the long-term implications of remote work on productivity, wages, and labor market dynamics.

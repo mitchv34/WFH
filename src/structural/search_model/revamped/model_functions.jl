@@ -7,7 +7,7 @@ Description: Abstract functions for the search model:
     - UtilityFunction
     - MatchingFunction
     - WageFunction
-=========================================ß=================================================#
+==========================================================================================#
 module ModelFunctions
     # Load required packages
     using Parameters, Roots

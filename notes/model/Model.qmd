@@ -1,0 +1,10 @@
+---
+title: "Model"
+author: 
+  - "Mitchell Valdes-Bobes"
+  - "Anna Lukianova"
+format: pdf
+fig-dpi: 320
+editor:
+    render-on-save: true
+---

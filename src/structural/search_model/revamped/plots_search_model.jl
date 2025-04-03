@@ -20,9 +20,13 @@ const FONT_SIZE_MANUSCRIPT = 14
 const FONT_SIZE_PRESENTATION = 24
 const FONT_SIZE = FONT_SIZE_PRESENTATION
 
-# Skill levels for specific plots
-const SKILL_LEVELS = [10, 40]
-const SKILL_LABELS = ["Low Skill", "High Skill"]
+const SKILL_PERCENTILES = [25, 75]
+
+# Function to get skill level indices based on percentiles
+function get_skill_indices(h_grid, percentiles)
+    n = length(h_grid.values)
+    return [max(1, min(n, round(Int, p * n / 100))) for p in percentiles]
+end
 
 # Plot collection struct
 mutable struct ModelPlotCollection
@@ -214,14 +218,16 @@ function plot_job_finding_prob(prim::Primitives, res::Results)
         latexstring("Promised Utility (\$x\$)"),
         L"p(\theta(x,h))")
 
-    job_skill_levels = [10, 30, 45]
-    job_skill_labels = ["Low Skill", "Medium Skill", "High Skill"]
+    # Use percentiles instead of hardcoded indices
+    percentiles = [30, 75, 90]  # Low, Medium, High skill at 25th, 50th, and 75th percentiles
+    skill_indices = get_skill_indices(prim.h_grid, percentiles)
+    skill_labels = ["Low Skill", "Medium Skill", "High Skill"]
 
     p = θ -> eval_prob_job_find(prim.matching_function, θ)
 
-    for (skill_i, skill) in enumerate(job_skill_levels)
+    for (i, skill_idx) in enumerate(skill_indices)
         lines!(
-            ax, prim.x_grid.values, p.(res.θ[skill, :]), color=COLORS[skill_i], linewidth=4, label=job_skill_labels[skill_i]
+            ax, prim.x_grid.values, p.(res.θ[skill_idx, :]), color=COLORS[i], linewidth=4, label=skill_labels[i]
         )
     end
     
