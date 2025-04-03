@@ -9,6 +9,8 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from scipy.linalg import orthogonal_procrustes
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.linear_model import LogisticRegression
+import numpy as np
 
 
 # Set up logging
@@ -375,5 +377,63 @@ for c in skill_vectors_python.columns:
     )
 # %%
 # Load the telewokability estimates
+teleworkability = pd.read_csv(BASE_DIR + "/data/results/wfh_estimates.csv").set_index('ONET_SOC_CODE')
+# Join the teleworkability estimates with the skill vectors
+skill_vectors_python = skill_vectors_python.join(teleworkability["ESTIMATE_WFH_ABLE"], how='left')
+skill_vectors_stata = skill_vectors_stata.join(teleworkability["ESTIMATE_WFH_ABLE"], how='left')
+# %%
+# Create FacetGrid plots to visualize relationships between skill indices and WFH ability
+plt.figure(figsize=(15, 10))
 
+skills_melted_python = pd.melt(
+    skill_vectors_python.reset_index(), 
+    id_vars=['ONET_SOC_CODE', 'OCCUPATION_TITLE', 'ESTIMATE_WFH_ABLE'],
+    value_vars=['Mechanical', 'Mathematics', 'Social Perceptiveness'],
+    var_name='Skill', value_name='Score'
+)
+
+# Plot for Python method
+g = sns.FacetGrid(skills_melted_python[skills_melted_python.ESTIMATE_WFH_ABLE > 0],
+                col='Skill', height=4, aspect=1.2)
+
+g.map_dataframe(sns.scatterplot, y='Score', x='ESTIMATE_WFH_ABLE', alpha=0.6)
+g.map_dataframe(sns.regplot, y='Score', x='ESTIMATE_WFH_ABLE', scatter=False, color='red')
+g.set_axis_labels('Teleworkability', 'Skill Score')
+# g.set_titles('{col} Skills vs WFH Ability (Python)')
+plt.show()
+# %% 
+# Fit logistic regression models for each skill
+python_models = {}
+for col in skill_vectors_python.columns:
+    if col == 'OCCUPATION_TITLE' or col == 'ESTIMATE_WFH_ABLE':
+        continue
+    X = skill_vectors_python[col].values.reshape(-1, 1)
+    # Create a binary target for logistic regression (assuming > 0.5 means remote work)
+    y = (skill_vectors_python['ESTIMATE_WFH_ABLE'] > 0.0).astype(int)
+    model = LogisticRegression()
+    model.fit(X, y)
+    python_models[col] = model
+# Plot logistic curves for each skill 
+plt.figure(figsize=(15, 5))
+for i, (skill_name, model) in enumerate(python_models.items()):
+    plt.subplot(1, 3, i+1)
     
+    # Create a range of values for the skill
+    x_range = np.linspace(0, 1, 100).reshape(-1, 1)
+    # Predict probabilities
+    y_probs = model.predict_proba(x_range)[:, 1]
+    
+    # Plot the curve
+    plt.plot(x_range, y_probs, 'r-', linewidth=2)
+    
+    plt.title(f'{skill_name} vs. Remote Work Probability')
+    plt.xlabel(f'{skill_name} Skill Score')
+    plt.ylabel('Probability of Remote Work')
+    plt.grid(True, alpha=0.3)
+    plt.ylim(-0.05, 1.05)
+
+plt.tight_layout()
+plt.suptitle('Logistic Regression: Skill Impact on Remote Work (Python Method)', y=1.05)
+plt.show()
+
+# %%
