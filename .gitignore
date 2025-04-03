@@ -4,6 +4,8 @@
 data/*
 !data/results/
 !data/results/**/*
+!data/aux_and_croswalks/
+!data/aux_and_croswalks/**/*
 !data/onet_data/
 !data/onet_data/processed/
 !data/onet_data/processed/reference/
