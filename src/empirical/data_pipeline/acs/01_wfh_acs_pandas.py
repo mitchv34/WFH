@@ -21,11 +21,15 @@ PROCESSED_DATA_DIR = os.path.join(BASE_DIR, 'data', 'processed', 'acs')
 SOC_AGGREGATOR = os.path.join(BASE_DIR, 'data', 'aux_and_croswalks', 'soc_structure_2018.xlsx')
 PUMA_CROSSWALK = os.path.join(BASE_DIR, 'data', 'aux_and_croswalks', "puma_to_cbsa.csv")
 WFH_INDEX = os.path.join(BASE_DIR, 'data', 'results', 'wfh_estimates.csv')
+SKILL_VECTORS = os.path.join(BASE_DIR, 'data', 'results', 'skill_vectors.csv')
 
 COLS_TO_EXPORT = [
     'YEAR', 'PERWT', 'AGE', 'RACE', 'RACED', 'EDUC', 'EDUCD', 'CLASSWKRD','WAGE', 'INDNAICS', 'cbsa20', 'WFH',
     'OCCSOC_detailed', 'OCCSOC_broad', 'OCCSOC_minor',
-    'TELEWORKABLE_OCCSOC_detailed', 'TELEWORKABLE_OCCSOC_broad', 'TELEWORKABLE_OCCSOC_minor'
+    'TELEWORKABLE_OCCSOC_detailed', 'TELEWORKABLE_OCCSOC_broad', 'TELEWORKABLE_OCCSOC_minor',
+    'SKILL_MECHANICAL_OCCSOC_detailed', 'SKILL_COGNITIVE_OCCSOC_detailed', 'SKILL_SOCIAL_OCCSOC_detailed',
+    'SKILL_MECHANICAL_OCCSOC_broad', 'SKILL_COGNITIVE_OCCSOC_broad', 'SKILL_SOCIAL_OCCSOC_broad',
+    'SKILL_MECHANICAL_OCCSOC_minor', 'SKILL_COGNITIVE_OCCSOC_minor', 'SKILL_SOCIAL_OCCSOC_minor'
 ]
 
 # Ensure directories exist
@@ -60,7 +64,8 @@ def read_acs_data(path, min_year=None, max_year=None):
         "INCTOT": float
     }
     # Read data (only the first 1200 rows for testing)
-    data = pd.read_csv(path, compression='gzip', low_memory=False, dtype=dtypes)
+    data = pd.read_csv(path, compression='gzip', low_memory=False, dtype=dtypes, nrows=1200)
+    
     logging.info(f"Data shape after reading: {data.shape}")
 
     # Filter data
@@ -338,6 +343,78 @@ def telework_index(data, soc_aggregator, how="my_index", occ_col="OCCSOC", path_
 
     return data
 
+# ? Skill Vectors
+def skill_vectors(data, soc_aggregator, occ_col="OCCSOC", path_to_skill_vectors=SKILL_VECTORS):
+    """
+    Add skill vectors (mechanical, cognitive, social) to the data for different occupation codes.
+    """
+    logging.info("Starting skill_vectors function.")
+    
+    # Load skill vectors data
+    logging.info(f"Loading skill vectors from {path_to_skill_vectors}")
+    skill_data = pd.read_csv(path_to_skill_vectors)
+    
+    # Extract the SOC code from ONET_SOC_CODE (remove the .00 suffix)
+    skill_data['OCC_CODE'] = skill_data['ONET_SOC_CODE'].str.split('.').str[0]
+    
+    # Group by OCC_CODE and calculate mean for each skill dimension
+    # This handles cases where multiple ONET codes map to the same SOC code
+    classification = skill_data.groupby('OCC_CODE')[['mechanical', 'cognitive', 'social']].mean().reset_index()
+    
+    # Create dictionaries for mapping detailed codes to skill scores
+    mechanical_dict_detailed = dict(zip(classification['OCC_CODE'], classification['mechanical']))
+    cognitive_dict_detailed = dict(zip(classification['OCC_CODE'], classification['cognitive']))
+    social_dict_detailed = dict(zip(classification['OCC_CODE'], classification['social']))
+    
+    # Map the skill scores to detailed occupation codes
+    data['SKILL_MECHANICAL_' + occ_col + '_detailed'] = data[occ_col + '_detailed'].apply(lambda x: convert_using_cw(x, mechanical_dict_detailed, False))
+    data['SKILL_COGNITIVE_' + occ_col + '_detailed'] = data[occ_col + '_detailed'].apply(lambda x: convert_using_cw(x, cognitive_dict_detailed, False))
+    data['SKILL_SOCIAL_' + occ_col + '_detailed'] = data[occ_col + '_detailed'].apply(lambda x: convert_using_cw(x, social_dict_detailed, False))
+    logging.info("Mapped skill vectors to detailed occupation codes.")
+    
+    # Create dictionaries for mapping detailed to broad and minor groups
+    soc_2018_dict_broad = dict(zip(soc_aggregator["Detailed Occupation"], soc_aggregator["Broad Group"]))
+    soc_2018_dict_minor = dict(zip(soc_aggregator["Detailed Occupation"], soc_aggregator["Minor Group"]))
+    
+    # Add broad and minor group codes to the classification data
+    classification["BROAD"] = classification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_broad))
+    classification["MINOR"] = classification["OCC_CODE"].apply(lambda x: convert_using_cw(x, soc_2018_dict_minor))
+    logging.info("Created BROAD and MINOR occupation codes for skill vector classification.")
+    
+    # Group and average skill values for BROAD category
+    classification_BROAD_mechanical = classification.groupby("BROAD")["mechanical"].mean().reset_index()
+    classification_BROAD_cognitive = classification.groupby("BROAD")["cognitive"].mean().reset_index()
+    classification_BROAD_social = classification.groupby("BROAD")["social"].mean().reset_index()
+    
+    # Group and average skill values for MINOR category
+    classification_MINOR_mechanical = classification.groupby("MINOR")["mechanical"].mean().reset_index()
+    classification_MINOR_cognitive = classification.groupby("MINOR")["cognitive"].mean().reset_index()
+    classification_MINOR_social = classification.groupby("MINOR")["social"].mean().reset_index()
+    logging.info("Calculated average skill values for BROAD and MINOR groups.")
+    
+    # Create mapping dictionaries for skill values at broad level
+    mechanical_dict_broad = dict(zip(classification_BROAD_mechanical['BROAD'], classification_BROAD_mechanical['mechanical']))
+    cognitive_dict_broad = dict(zip(classification_BROAD_cognitive['BROAD'], classification_BROAD_cognitive['cognitive']))
+    social_dict_broad = dict(zip(classification_BROAD_social['BROAD'], classification_BROAD_social['social']))
+    
+    # Create mapping dictionaries for skill values at minor level
+    mechanical_dict_minor = dict(zip(classification_MINOR_mechanical['MINOR'], classification_MINOR_mechanical['mechanical']))
+    cognitive_dict_minor = dict(zip(classification_MINOR_cognitive['MINOR'], classification_MINOR_cognitive['cognitive']))
+    social_dict_minor = dict(zip(classification_MINOR_social['MINOR'], classification_MINOR_social['social']))
+    
+    # Map the skill values to the data for broad occupation groups
+    data['SKILL_MECHANICAL_' + occ_col + '_broad'] = data[occ_col + '_broad'].apply(lambda x: convert_using_cw(x, mechanical_dict_broad, False))
+    data['SKILL_COGNITIVE_' + occ_col + '_broad'] = data[occ_col + '_broad'].apply(lambda x: convert_using_cw(x, cognitive_dict_broad, False))
+    data['SKILL_SOCIAL_' + occ_col + '_broad'] = data[occ_col + '_broad'].apply(lambda x: convert_using_cw(x, social_dict_broad, False))
+    
+    # Map the skill values to the data for minor occupation groups
+    data['SKILL_MECHANICAL_' + occ_col + '_minor'] = data[occ_col + '_minor'].apply(lambda x: convert_using_cw(x, mechanical_dict_minor, False))
+    data['SKILL_COGNITIVE_' + occ_col + '_minor'] = data[occ_col + '_minor'].apply(lambda x: convert_using_cw(x, cognitive_dict_minor, False))
+    data['SKILL_SOCIAL_' + occ_col + '_minor'] = data[occ_col + '_minor'].apply(lambda x: convert_using_cw(x, social_dict_minor, False))
+    logging.info("Assigned skill vectors to broad and minor occupation codes.")
+
+    return data
+
 # ? Add WFH index to the data (based on TRANWORK) 
 def wfh_index(data):  
     """
@@ -388,6 +465,8 @@ if __name__ == "__main__":
     data = aggregate_puma_to_cbsa(data, PUMA_CROSSWALK)
     # Calculate the telework index for each individual's occupation
     data = telework_index(data, soc_aggregator)
+    # Add skill vectors to the data
+    data = skill_vectors(data, soc_aggregator)
     # Calculate the WFH index for each worker
     data = wfh_index(data)
     # Save the processed data
