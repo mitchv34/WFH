@@ -16,16 +16,12 @@
 // * Data and set up
 // ********************************************************************************
 
+encode $occup_var, gen(occup_cat)
+
 local y_var = "$y_var"
 local main_x= "wfh_cat"
 
 local filename = "reg_wage_wfh_$add_fn"
-
-// * Open the data
-import delimited "$path_data/acs_136_processed.csv", clear
-
-// * clean data
-do "$path_code/02_basic_cleaning.do"
 
 local filename = "`filename'_$occup_var"
 
@@ -142,6 +138,7 @@ foreach j in $dem_list{
     }
 }
 
+
 esttab `reg_list', ///
     nogaps label nomtitles ///
     se star(* 0.1 ** 0.05 *** 0.001) ///
@@ -163,7 +160,8 @@ esttab `reg_list' using "$path_tables/`filename'.tex", replace ///
     scalars("row_occup occupation FE" "row_ind industry FE" "row_year year FE" "row_cbs CBSA FE" "row_empt Employment FE" "row_dem Advanced demographics") 
     
 
-
+// Drop the new occupation category
+drop occup_cat  
 // ************************************************************************
 
 

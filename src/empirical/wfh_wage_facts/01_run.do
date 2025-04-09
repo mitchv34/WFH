@@ -14,7 +14,6 @@
 // * global variables and set up
 // ********************************************************************************
 
-//* cost shifters
 
 global y_var = "wage"
 global x_var = "wfh"
@@ -50,37 +49,48 @@ global fe_list = "2 3 4 5 6"
 global dem_list = "2"
 
 // *******************************************************
+// * Load and Clean the Data
+// *******************************************************
+import delimited "$path_data/acs_136_processed.csv", clear
+do "$path_code/02_basic_cleaning.do"
 
+// *******************************************************
+// * Regression of wage on remote work
+// *******************************************************
 // global add_fn = ""
-// // * Run table summary for the project
-
+//
 // foreach c in `cluster_list' { //"loan_losses" zscore2 loan_losses ratio_eqasset
 //     di "Cluster: `c'" 
 //     global cluster_type = "`c'"
-    
+//    
 //     foreach o in `occu_list' { //occu_list
 //         di "Occupation: `o'"
 //         global occup_var = "`o'"
 //         do "$path_code/03_reg_wage_wfh.do" 
 //     }
-
+//
 // }
-    // forvalues i = 1/7 { //1/7 
 
 // *******************************************************
 // * Run basic regressions with Teleworkable index
 // *******************************************************
 
-global add_fn = "Teleindex"
-// * Run table summary for the project
-global main_x1 = "teleworkable_occsoc_detailed"
-global main_x2 = "teleworkable_occsoc_detailed wfh_cat"
-
-global fe_list = "2 3 4 7"
-global dem_list = "2"
-global main_x_list = "1 2"
+global add_fn = "Teleindex_ext_skill_occfe"
 
 global occup_var = "occsoc_minor"
+
+local occ_level = "occsoc_detailed"
+
+// * Run table summary for the project
+global main_x1 = "teleworkable_`occ_level'"
+global main_x2 = "teleworkable_`occ_level' wfh_cat"
+global main_x3 = "teleworkable_`occ_level' skill_cognitive_`occ_level' skill_mechanical_`occ_level' skill_social_`occ_level'"
+global main_x4 = "teleworkable_`occ_level' wfh_cat skill_cognitive_`occ_level' skill_mechanical_`occ_level' skill_social_`occ_level'"
+
+global fe_list = "7 6"
+global dem_list = "2"
+global main_x_list = "1 2 3 4"
+
 
 global cluster_list = "robust" // cbs_year occupm_educ " //robust cbs_year occupm_educ edu_age
 

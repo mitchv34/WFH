@@ -23,4 +23,3 @@ global path_data = "$dir/data/processed/acs/"
 global path_code = "$dir/src/empirical/wfh_wage_facts/"
 global path_tables = "$dir/docs/tables"
 // *******************************************************
- 

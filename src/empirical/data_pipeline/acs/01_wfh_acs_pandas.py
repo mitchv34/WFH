@@ -63,8 +63,8 @@ def read_acs_data(path, min_year=None, max_year=None):
         "UHRSWORK": float,
         "INCTOT": float
     }
-    # Read data (only the first 1200 rows for testing)
-    data = pd.read_csv(path, compression='gzip', low_memory=False, dtype=dtypes, nrows=1200)
+    
+    data = pd.read_csv(path, compression='gzip', low_memory=False, dtype=dtypes)
     
     logging.info(f"Data shape after reading: {data.shape}")
 

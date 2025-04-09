@@ -42,7 +42,6 @@ replace teleworkable_occsoc_detailed = teleworkable_occsoc_broad if  teleworkabl
 // create categorical variables
 // encode race, gen(race_cat)
 // encode educ, gen(educ_cat)
-encode $occup_var, gen(occup_cat)
 encode indnaics, gen(ind_cat)
 // create groups
 egen edu_age = group(educ age_cat_4)
