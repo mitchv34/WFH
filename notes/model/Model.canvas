@@ -1,0 +1,237 @@
+{
+  "edges": [
+    {
+      "fromNode": "6326bafc5252d110",
+      "fromSide": "bottom",
+      "id": "cff4ec7c4fac48d1",
+      "styleAttributes": {
+      },
+      "toNode": "a549afd3f60ee700",
+      "toSide": "top"
+    },
+    {
+      "fromNode": "17868de185099e6c",
+      "fromSide": "bottom",
+      "id": "ad6ecf890c8fbb65",
+      "styleAttributes": {
+      },
+      "toNode": "144066ad9a7d3522",
+      "toSide": "top"
+    },
+    {
+      "fromNode": "fe4bc5ae32071aa8",
+      "fromSide": "bottom",
+      "id": "87cecbeb02ccb9ab",
+      "styleAttributes": {
+      },
+      "toNode": "144066ad9a7d3522",
+      "toSide": "top"
+    },
+    {
+      "fromNode": "1fd70052928f2f8e",
+      "fromSide": "left",
+      "id": "45882f6199575f78",
+      "styleAttributes": {
+      },
+      "toNode": "144066ad9a7d3522",
+      "toSide": "right"
+    },
+    {
+      "fromNode": "778b8bb9cd8e7d7c",
+      "fromSide": "left",
+      "id": "15864aed7a934483",
+      "styleAttributes": {
+      },
+      "toNode": "6326bafc5252d110",
+      "toSide": "right"
+    },
+    {
+      "fromNode": "1fd70052928f2f8e",
+      "fromSide": "top",
+      "id": "b137903e0518cba8",
+      "styleAttributes": {
+      },
+      "toNode": "778b8bb9cd8e7d7c",
+      "toSide": "bottom"
+    },
+    {
+      "fromNode": "f61ed762795b6bbf",
+      "fromSide": "left",
+      "id": "8c6ee3e240faad28",
+      "styleAttributes": {
+      },
+      "toNode": "144066ad9a7d3522",
+      "toSide": "right"
+    },
+    {
+      "fromNode": "f61ed762795b6bbf",
+      "fromSide": "top",
+      "id": "52c76b14cd037427",
+      "styleAttributes": {
+      },
+      "toNode": "1fd70052928f2f8e",
+      "toSide": "bottom"
+    },
+    {
+      "fromNode": "144066ad9a7d3522",
+      "fromSide": "left",
+      "id": "1f4f8ec6c5956824",
+      "styleAttributes": {
+      },
+      "toNode": "3adf148b601f6753",
+      "toSide": "right"
+    },
+    {
+      "fromNode": "3adf148b601f6753",
+      "fromSide": "bottom",
+      "id": "4cd5f14eb41b97a4",
+      "styleAttributes": {
+      },
+      "toNode": "d5cdfb0633360704",
+      "toSide": "top"
+    },
+    {
+      "fromNode": "a549afd3f60ee700",
+      "fromSide": "bottom",
+      "id": "5ab477812d7b779a",
+      "styleAttributes": {
+      },
+      "toNode": "fe4bc5ae32071aa8",
+      "toSide": "top"
+    },
+    {
+      "fromNode": "a549afd3f60ee700",
+      "fromSide": "bottom",
+      "id": "f25814df5b99c807",
+      "styleAttributes": {
+      },
+      "toNode": "17868de185099e6c",
+      "toSide": "top"
+    }
+  ],
+  "nodes": [
+    {
+      "height": 4180,
+      "id": "8aa10e5230778b94",
+      "label": "Model",
+      "styleAttributes": {
+      },
+      "type": "group",
+      "width": 2680,
+      "x": -900,
+      "y": -500
+    },
+    {
+      "height": 460,
+      "id": "a549afd3f60ee700",
+      "styleAttributes": {
+        "border": null,
+        "shape": null
+      },
+      "text": "### Model Overview\n- Directed search model in the spirit of [[2010 - Guido Menzio, Shouyong Shi - Block recursive equilibria for stochastic models of search on the job|Menzio and Shi (2010)]]\n- Sources of heterogeneity:\n    - **Firms**: Different remote-work efficiencies.\n    - **Workers**: Different skill levels.\n- **Key Mechanisms**:\n    - Workers value the flexibility provided by remote work arrangements.\n    - High-skilled workers are more productive and better suited for remote work.\n    - Firms treat remote and on-site work as substitutable.",
+      "type": "text",
+      "width": 580,
+      "x": -240,
+      "y": -320
+    },
+    {
+      "height": 60,
+      "id": "6326bafc5252d110",
+      "styleAttributes": {
+      },
+      "text": "## Model\n",
+      "type": "text",
+      "width": 160,
+      "x": -30,
+      "y": -480
+    },
+    {
+      "height": 60,
+      "id": "1fd70052928f2f8e",
+      "styleAttributes": {
+      },
+      "text": "# [[Optimal Remote Policy (General Functional Forms)]]",
+      "type": "text",
+      "width": 720,
+      "x": 1000,
+      "y": 1260
+    },
+    {
+      "height": 60,
+      "id": "778b8bb9cd8e7d7c",
+      "styleAttributes": {
+      },
+      "text": "# [[Model.qmd|Model Note]]",
+      "type": "text",
+      "width": 280,
+      "x": 1200,
+      "y": -480
+    },
+    {
+      "height": 2260,
+      "id": "144066ad9a7d3522",
+      "styleAttributes": {
+      },
+      "text": "### Optimal Remote Work Policy\n\n* Type $\\psi$ firms posting vacancies in a sub-market $(x,h)$ faces the maximization problem:  \n  $\\max_{\\alpha} \\{ Y(\\alpha \\mid \\psi, h) - w(x,\\alpha)\\}\\quad\\text{s.t.}\\quad x(w(x,\\alpha), \\alpha) = x$  \n* Implies an optimal remote policy for each firm $\\alpha^*(\\psi, h, x)$  \n* We [[Optimal Remote Policy (Particular Functional Forms)|derive the optimal remote work policy]] with the following parametrization:  \n  * **Skill-Driven productivity gains**: $A(h) = A h$ with $A > 0$  \n  * **Remote work efficiency**: $g(\\psi, h) = \\psi - \\psi_0 + \\phi \\log(h)$  \n    * $\\psi_0$: Baseline productivity reflecting how technology supports remote work.  \n    * $\\phi \\in \\mathbb{R}$: Captures how worker skill affects the productivity of remote work.  \n  * **Worker utility**: $x(w,\\alpha)= w - c (1 - \\alpha)^{\\chi}$ with $c > 0$ and $\\chi > 1$  \n\n---\n\n### Optimal Remote Work Policy\n\n* First order conditions of the firm problem give us interior solution if and only if:  \n * First order conditions of the firm problem give us interior solution if and only if:  \n$$1+\\psi_0-\\phi \\log (h) -\\frac{c \\chi }{A h} < \\psi < 1+\\psi_0-\\phi \\log (h)$$  \n* The optimal remote work policy is:  \n$$\n\\begin{equation*}\n\\alpha^*(\\psi, h) =\n\\begin{cases}\n    0 & \\text{if} \\quad \\psi \\leq \\underline{\\psi}(h) \\\\\n    1-\\left(\\frac{A h (1 + \\psi_0 - \\phi \\log (h) -\\psi )}{c \\chi}\\right)^{\\frac{1}{\\chi -1}} &  \\text{ if } \\quad \\underline{\\psi}(h) < \\psi < \\overline{\\psi}(h) \\\\\n    1 & \\text{if} \\quad \\overline{\\psi}(h) \\leq \\psi\n\\end{cases}\n\\end{equation*}\n$$\n---\n\n### [[Proposition (Particular Functional Forms)|Proposition: Optimal Remote Work Policy Properties]]\n\nConsider a firm's optimal remote work policy where a worker's skill level $h$ influences their arrangement. If the worker's skill satisfies:  \n$$h > \\frac{c \\chi}{A \\phi}$$  \nthen the following properties hold:  \n* **Higher-skilled workers get more remote work**: The optimal remote work policy $\\alpha^*(h)$ is increasing in $h$.  \n* **Easier access to remote work**: The lower bound $\\underline{\\psi}(h)$ of the productivity range where remote work is feasible decreases in $h$.  \n* **Lower threshold for full remote work**: The upper bound $\\overline{\\psi}(h)$, which determines when full remote work is optimal, decreases in $\\alpha$.  \n\n---\n### Optimal Remote Work\n![[remote_work_policy.pdf]]",
+      "type": "text",
+      "width": 660,
+      "x": 180,
+      "y": 1220
+    },
+    {
+      "height": 60,
+      "id": "f61ed762795b6bbf",
+      "styleAttributes": {
+      },
+      "text": "# [[Proposition (General Functional Forms)]]",
+      "type": "text",
+      "width": 620,
+      "x": 1050,
+      "y": 1950
+    },
+    {
+      "height": 640,
+      "id": "d5cdfb0633360704",
+      "styleAttributes": {
+      },
+      "text": "### Value Functions\n\n* **Firms:**\n\t* *Value of posting:*$$\\begin{equation*}\n    V(h, x) = - \\kappa + q(\\theta(h,x))\\int J(\\psi, h, x) dF(\\psi)\n    \\end{equation*}$$\n    \n\t - *Value of an ongoing match:*$$\\begin{equation*}\n    J(\\psi, h, x) = Y(\\alpha^*(\\psi, h)\\mid \\psi, h) - w(x, \\alpha^*(\\psi, h)) + \\beta \\left[(1 - \\delta) J(\\psi, h, x) + \\delta V(h, x) \\right]\n    \\end{equation*}$$\n - **Workers:**\n\t  * *Value of unemployed worker:* $$\\begin{equation*}\n  U(h) = b + \\max_{x}\\left\\{ p(\\theta(h,x))\\int W(\\psi, h, x) dF(\\psi) + (1 - p(\\theta(h,x)))U(h)\\right\\}\n  \\end{equation*}$$\n\t* *Value of employed worker:*$$\\begin{equation*}\n  W(\\psi, h, x) = x + \\beta \\left[ (1 - \\delta) W(\\psi, h, x) + \\delta U(h) \\right]\n  \\end{equation*}$$",
+      "type": "text",
+      "width": 825,
+      "x": -815,
+      "y": 2400
+    },
+    {
+      "height": 630,
+      "id": "3adf148b601f6753",
+      "styleAttributes": {
+      },
+      "text": "### Search \n\n- Type $h$ worker direct their search over promised utility values $x$. \n- Firms search for workers of type $h$ by promising utilities $x$.\n- Submarkets are indexed by $(h, x)$, tightness is defined as:$$\n  \\theta(h, x) = \\frac{v(h, x)}{u(h, x)}$$\n  - $v(h, x)$ = number of vacancies in submarket $w$\n  - $u(h, x)$ = number of unemployed people in submarket $w$\n  - Vacancy filling rate: $q(\\theta(h, x))$\n  - Job finding rate: $p(\\theta(h, x))$\n\n- There is free entry of firms with vacancy posting cost $\\kappa \\in \\mathbb{R}_{++}$.\n\t- $\\implies$ expected value of posting a vacancy is null.\n\n- Once a firm and a worked are matched the firm delivers $x$ utility to the worker following their optimal remote work policy.\n\n- The remote productivity of the firm is drawn from the exogenous distribution $F(\\psi)$. \n\t- Since firms are ex-ante homogenous the probability of being hired by a type $\\psi$ firm is the same in every submarket.\n- Matches are exogenously broken at a rate $\\delta$.",
+      "type": "text",
+      "width": 825,
+      "x": -815,
+      "y": 1320
+    },
+    {
+      "height": 680,
+      "id": "fe4bc5ae32071aa8",
+      "styleAttributes": {
+      },
+      "text": "### Workers\n\n* Characterized by their productivity.  \n* Incur disutility from on-site work $(1-\\alpha)$, compensated by wage $(w)$.  \n  * $x(w,\\alpha)$: utility of a worker earning $w$ with remote work $\\alpha\\in[0,1]$ of the time.  \n    * $$x(w, \\alpha) = w - c (1 - \\alpha)^{\\chi}$$  \n    * $$c > 0$$ is, utility scaling factor and $$ \\chi > 1$$ is the curvature parameter.  \n    * *$x_{w}(w,\\alpha)>0$*  \n    * *$x_{\\alpha}(w,\\alpha)>0$*  \n* Labor market is segmented by worker type and promised utility: $(h,x)$.  \n  * $\\theta(h,x)$ is the sub-market tightness.  \n  * $p(\\theta(h,x))$ is the job finding rate.  \n* Choose where to apply based on maximizing expected utility.  ",
+      "type": "text",
+      "width": 735,
+      "x": -815,
+      "y": 360
+    },
+    {
+      "height": 680,
+      "id": "17868de185099e6c",
+      "styleAttributes": {
+      },
+      "text": "### Firms\n\n* **Remote-work efficiency**: A firm’s type $\\psi$ determines its efficiency in remote work.  \n* The output of a firm-worker match depends on the fraction of remote work ($\\alpha$) and the worker's skill ($h$):  \n  $$Y(\\alpha \\mid \\psi, h) = A(h)\\left((1 - \\alpha) + \\alpha g(h,\\psi)\\right)$$  \n  * $A'(h) > 0$: Higher-skilled workers ($h$) contribute more to productivity.  \n  * $g_{\\psi}(\\psi, h) \\geq 0$: Remote work efficiency increases with firm type ($\\psi$) due to better technology, better management practices or the nature of the occupation.  \n  * $g_{h}(\\psi, h) \\geq 0$: Remote work efficiency increases with skill ($h$) due to greater autonomy and technological ability.  \n* Firm is uncertain of $\\psi$ before posting. The distribution $F(\\psi)$ is known by all agents.  ",
+      "type": "text",
+      "width": 680,
+      "x": 370,
+      "y": 360
+    }
+  ]
+}

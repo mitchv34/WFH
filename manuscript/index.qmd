@@ -1,0 +1,67 @@
+---
+title: "JMP"
+date: last-modified	
+date-format: long
+author: 
+  - name: "Mitchell Valdes-Bobes"
+    id: mv
+    email: valdsbobes@wisc.edu
+    affiliation: 
+      - name: University of Wisconsin-Madison
+        city: Madison
+        state: WI
+        url: https://econ.wisc.edu/
+  - name: "Anna Lukianova"
+    id: al
+    email: lukianova@wisc.edu
+    affiliation: 
+      - name: University of Wisconsin-Madison
+        city: Madison
+        state: WI
+        url: https://econ.wisc.edu/
+abstract: >
+    Et commodo tempor aute in in occaecat id consequat ullamco dolore cupidatat minim ullamco. Et id cillum minim dolore eu in mollit nulla et enim velit cupidatat. Cillum magna minim incididunt sint ipsum commodo officia sunt culpa. Est veniam nulla est laboris amet nisi est adipisicing sit excepteur dolor. Consequat non duis aliquip exercitation culpa irure incididunt velit sunt elit excepteur.
+format: 
+  pdf:
+    toc: true
+    number-sections: true
+    fontsize: 12pt
+    fontfamily: lmodern
+    geometry:
+      - margin=1in
+      - top=0.9in
+      - bottom=0.9in
+    linestretch: 1.5
+    latex-engine: pdflatex
+    include-in-header: 
+      text: |
+        \usepackage{amsmath}
+        \usepackage{amsthm}
+        \usepackage{amssymb}
+        \usepackage{booktabs}
+        \usepackage{setspace}
+fig-dpi: 320
+editor:
+    render-on-save: true
+---
+
+
+## Introduction
+
+
+
+## Literature Review
+
+
+## Model
+
+{{< include "../notes/model/Model.md" >}}
+
+## Empirical Analysis
+
+## Results
+
+## Conclusion
+
+
+## References

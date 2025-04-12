@@ -1,32 +1,4 @@
----
-title: "Model"
-author: 
-  - "Mitchell Valdes-Bobes"
-  - "Anna Lukianova"
-format: 
-  pdf:
-    fontsize: 12pt
-    fontfamily: lmodern
-    geometry:
-      - margin=1in
-      - top=0.9in
-      - bottom=0.9in
-    linestretch: 1.5
-    latex-engine: pdflatex
-    include-in-header: 
-      text: |
-        \usepackage{amsmath}
-        \usepackage{amsthm}
-        \usepackage{amssymb}
-        \usepackage{booktabs}
-        \usepackage{setspace}
-fig-dpi: 320
-editor:
-    render-on-save: true
----
-# Model
-
-## Environment
+### Environment
 
 This model follows a directed search framework in the spirit of [[2010 - Guido Menzio, Shouyong Shi - Block recursive equilibria for stochastic models of search on the job||2010 - Guido Menzio, Shouyong Shi]]. The model incorporates two key sources of heterogeneity: firms differ in their remote-work efficiencies, while workers vary in their skill levels. The key mechanisms in this framework are that workers value the flexibility provided by remote work arrangements, high-skilled workers are more productive and better suited for remote work, and firms treat remote and on-site work as substitutable inputs in their production processes.
 
@@ -39,7 +11,7 @@ $$Y(\alpha \mid \psi, h) = A(h)\left((1 - \alpha) + \alpha g(h,\psi)\right)$$ {#
 
 Since $g(\psi, h)$ captures the adjustment of productivity to remote work in @eq-prod and is heterogeneous across firms and workers, the optimal remote work policy will also be heterogeneous.
 
-### Optimal Remote Work Choice
+#### Optimal Remote Work Choice
 The firm’s problem implies an optimal choice of remote work $\alpha^*(\psi, h, x)$ that satisfies the first-order condition:
 
 **Interior Solution:** Let's start with the interior solution, where the firm chooses a positive fraction of remote work. This optimal choice $\alpha^*(\psi, h, x)$ must satisfy:(details of the derivation are in the [[Optimal Remote Policy (General Functional Forms)|Appendix]])
@@ -63,7 +35,7 @@ The optimal remote work policy is given by: $$\alpha^*(\psi, h, x) = \begin{case
 where $\underline{\psi}(h)$ and $\overline{\psi}(h)$ are the thresholds for the remote work efficiency parameter $\psi$ below which it is optimal to offer no remote work and above which it is optimal to offer full remote work, respectively. The interior solution $\alpha^*(\psi, h, x)$ satisfies the first-order condition in @eq-interiorSolutionOptimalRemote.
 
 ::: {#prp-optimalRemotePolicyProperties}
-#### Properties of the Optimal Remote Policy
+##### Properties of the Optimal Remote Policy
 The optimal remote work policy $\alpha^*(\psi, h, x)$ defined in @optimalRemoteWorkPolicy has the following properties:
 
 1. \textbf{Higher-skilled workers get more remote work:} The interior solution $\alpha^*(h)$ is (weakly) increasing in $h$; that is, holding $\psi$ and $x$ constant, firms assign a higher remote work share to higher-skilled workers.
@@ -75,7 +47,7 @@ The optimal remote work policy $\alpha^*(\psi, h, x)$ defined in @optimalRemoteW
 :::
 
 
-### Labor Market Search
+#### Labor Market Search
 
 Both firms and workers discount the future at rate $\beta$. Workers are characterized by their type $h$ and direct their search toward submarkets distinguished by the promised utility level $x$. A worker of type $h$ evaluates the different utility promises available in each submarket and chooses to search in the one that maximizes their expected value. This expected value incorporates not only the probability of being hired but also the future discounted value of the job. At the same time, firms target workers of a particular type $h$ by posting job offers (or contracts) that promise a specific utility level $x$. This setup allows the market to be segmented into different submarkets. The tightness of a submarket $(h, x)$  is defined as:$$
 \theta(h, x) = \frac{v(h, x)}{u(h, x)},$$where $v(h, x)$ denotes the number of vacancies posted by firms in the submarket and $u(h, x)$ represents the number of unemployed workers actively searching within that particular submarket. This measure of tightness directly influences the probabilities of matching: the vacancy filling rate $q(\theta(h, x))$ and the job finding rate $p(\theta(h, x))$ are both functions of $\theta$. In our equilibrium, free entry of firms ensures that the expected profit from posting a vacancy is zero, after incurring a cost $\kappa\in\mathbb{R}_{++}$. Matches are exogenously broken at a rate $\delta$.
