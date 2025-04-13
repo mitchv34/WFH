@@ -45,6 +45,7 @@ format:
         \usepackage{amssymb}
         \usepackage{booktabs}
         \usepackage{setspace}
+        \usepackage{graphicx}
 fig-dpi: 320
 editor:
     render-on-save: true

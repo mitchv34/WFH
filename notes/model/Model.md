@@ -1,4 +1,4 @@
-### Environment
+### Model Overview
 
 This model follows a directed search framework in the spirit of [@menzio2010a]. The model incorporates two key sources of heterogeneity: firms differ in their remote-work efficiencies, while workers vary in their skill levels. The key mechanisms in this framework are that workers value the flexibility provided by remote work arrangements, high-skilled workers are more productive and better suited for remote work, and firms treat remote and on-site work as substitutable inputs in their production processes.
 
@@ -68,6 +68,12 @@ For $A_0>0$, if $c_0\chi\le4\phi a_1A_0$, $\underline{\psi}(h)$ is strictly decr
 $$
 h_{1,2}=\frac{(c_0\chi-2\phi a_1A_0)\pm\sqrt{c_0\chi(c_0\chi-4\phi a_1A_0)}}{2\phi a_1A_1}.
 $$
+
+::: {layout-ncol=2}
+![This panel maps the optimal remote work share $(\alpha^{*})$ for different combinations of firm efficiency and worker skill. The graph visually represents the trade-off between productivity adjustments and wage savings in determining the remote work arrangement.](../figures/model_figures/plot_policy_for_skill.pdf)
+
+![This panel illustrates how the lower $(\underline{\psi}(h))$ and upper $\overline{\psi}(h)$ thresholds  vary with worker skill, highlighting the conditions under which firms move from no remote work to an interior solution or full remote work.](../figures/model_figures/plot_thresholds.pdf)
+:::
 
 ### Labor Market Search
 
