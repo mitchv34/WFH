@@ -4,7 +4,7 @@ ModelConfig:
   ModelFunctions:
     #> Definitions and parameters for the functions used in the model
     MatchingFunction:
-      type: "LogisticMatching"
+      type: "CESMatching"
       params:
         gamma: 0.5
     ProductionFunction:
@@ -12,13 +12,13 @@ ModelConfig:
         type: "LinearProductivity" # A(h) = A₀ + A₁ * h
         params:
           A0: 0.0 
-          A1: 26.0 
+          A1: 31.5 
       RemoteEfficiencyComponent:
         type: "LinearFirmLogWorker" # g(ψ, h) = ν * ψ - ψ₀ + ϕ * log(h)
         params:
           nu : 1.0  
-          phi: 2.5  
-          phi0: 1.42
+          phi: 2.03  
+          psi0: 0.59
     UtilityFunction:
       type: "PolySeparable" # U(w, α, h) = (a₀ + a₁ w^η_w) + (c₀ + c₁ * h^η_h) * (1 - α)^χ
       # Note: The utility function in the original model was x = w + c0 * (1 - α)^χ
@@ -44,10 +44,11 @@ ModelConfig:
       data_column: "PSI" # Column with the data to construct the grid
       weight_column: "JOB_CREATION_BIRTHS" # Column with the weights for the data
     SkillGrid:
-      n_h: 70    # Number of h grid points
-      data_file: "data/results/wfh_estimates.csv" # File with the data to construct the grid
-      data_column: "ESTIMATE_WFH_ABLE" # Column with the data to construct the grid
-      weight_column: "_" # Column with the weights for the data (not present in the data file)
+      n_h: 70    # Number of s grid points
+      # data_file: "data/results/wfh_estimates.csv" # File with the data to construct the grid
+      data_file: "data/results/data_density_3d.csv" # File with the data to construct the grid
+      data_column: "SKILL_INDEX" # Column with the data to construct the grid
+      weight_column: "JOB_CREATION_BIRTHS" # Column with the weights for the data (not present in the data file)
     UtilityGrid:
       n_x: 100   # Number of x grid points
       x_min: 5   # Minimum x

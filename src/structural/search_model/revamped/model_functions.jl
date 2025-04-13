@@ -88,7 +88,7 @@ module ModelFunctions
     #  - LinearProductivity: A(h) = A₀ + A₁ * h
     ==========================================================================================#
     # > LinearProductivity
-    @with_kw struct LinearProductivity <: ProductivityComponent
+    @with_kw mutable struct LinearProductivity <: ProductivityComponent
         A₀::Float64              # Base productivity level
         A₁::Float64              # Skill intensity of productivity
         # Constructor: Removed undefined 'η'
@@ -119,7 +119,7 @@ module ModelFunctions
     #  - LinearFirmLogWorker g(ψ, h) = ν * ψ - ψ₀ + ϕ * log(h)
     ==========================================================================================#
     # > LinearFirmLogWorker
-    @with_kw struct LinearFirmLogWorker <: RemoteEfficiencyComponent
+    @with_kw mutable struct LinearFirmLogWorker <: RemoteEfficiencyComponent
         ν::Float64              # Remote efficiency scaling factor of firm remote efficiency
         ϕ::Float64              # Remote efficiency scaling factor of worker skill
         ψ₀::Float64             # Threshold for remote efficiency to be positive for production
@@ -153,7 +153,7 @@ module ModelFunctions
     #==========================================================================================
     # Create a composite production function that combines productivity and remote efficiency
     ==========================================================================================#
-    @with_kw struct CompositeProduction <: ProductionFunction
+    @with_kw mutable struct CompositeProduction <: ProductionFunction
         productivity::ProductivityComponent
         remote_efficiency::RemoteEfficiencyComponent
     end # end definition
@@ -200,7 +200,7 @@ module ModelFunctions
     # - PolySeparable: U(w, α, h) = (a₀ + a₁ w^η_w) - (c₀ + c₁ * h^η_h) * (1 - α)^χ
     ==========================================================================================#
     # > QuasiLinearSkill
-    @with_kw struct PolySeparable <: UtilityFunction
+    @with_kw mutable struct PolySeparable <: UtilityFunction
         a₀::Float64              # Base intensity of wage preference
         a₁::Float64              # Slope of wage preference
         η_w::Float64             # Curvature of wage preference
@@ -298,7 +298,7 @@ module ModelFunctions
     # - LogisticMatching: M(V, U) = (V * U )^γ / (V^γ + U^γ)
     ==========================================================================================#
     # > CobbDouglasMatching
-    @with_kw struct CobbDouglasMatching <: MatchingFunction
+    @with_kw mutable struct CobbDouglasMatching <: MatchingFunction
         γ::Float64               # Matching elasticity
         maxVacancyFillRate::Float64  # Maximum rate at which vacancies are filled
         # Constructor
@@ -331,7 +331,7 @@ module ModelFunctions
         end
     end # end validate_parameters
     # > CESMatching
-    @with_kw struct CESMatching <: MatchingFunction
+    @with_kw mutable struct CESMatching <: MatchingFunction
         γ::Float64   # CES parameter (γ > 0)
         maxVacancyFillRate::Float64  # Maximum rate at which vacancies are filled
         # Constructor
@@ -361,7 +361,7 @@ module ModelFunctions
         end
     end
     #> ExponentialMatching
-    @with_kw struct ExponentialMatching <: MatchingFunction
+    @with_kw mutable struct ExponentialMatching <: MatchingFunction
         γ::Float64   # parameter controlling the arrival rate (γ > 0)
         maxVacancyFillRate::Float64  # Maximum rate at which vacancies are filled
         # Constructor
@@ -387,7 +387,7 @@ module ModelFunctions
         end
     end
     #> LogisticMatching
-    @with_kw struct LogisticMatching <: MatchingFunction
+    @with_kw mutable struct LogisticMatching <: MatchingFunction
         γ::Float64   # parameter controlling the curvature (γ > 0)
         maxVacancyFillRate::Float64  # Maximum rate at which vacancies are filled
         # Constructor: use input γ instead of f.γ for setting maxVacancyFillRate

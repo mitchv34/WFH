@@ -17,6 +17,8 @@ def generate_latex_document(folder_path, output_file):
         f.write("\\tableofcontents\n\\newpage\n")
         
         for tex_file in tex_files:
+            if tex_file == "00_AllTables.tex":
+                continue
             section_name = tex_file.replace(".tex", "").replace("_", " ")
             f.write(f"\\section{{{section_name}}}\n")
             f.write("\\input{" + os.path.join(folder_path, tex_file) + "}\n")

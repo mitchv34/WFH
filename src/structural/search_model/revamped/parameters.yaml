@@ -26,10 +26,10 @@ ModelConfig:
         a0: 0.0  
         a1: 1.0  
         eta_w: 1.0
-        c0: 0.0
-        c1: 16.0 #! c0 in my original model
+        c0: 16.0 
+        c1: 0.0
         eta_h: 1.0  #! 1.0 in my original model
-        chi: 1.01 #! χ in my original model
+        chi: 1.51 #! χ in my original model
   ModelParameters:
     #> Parameters for the model
     kappa: 1.37     # Vacancy posting cost
@@ -44,10 +44,14 @@ ModelConfig:
       data_column: "PSI" # Column with the data to construct the grid
       weight_column: "JOB_CREATION_BIRTHS" # Column with the weights for the data
     SkillGrid:
+      # n_h: 70    # Number of s grid points
+      # data_file: "data/results/wfh_estimates.csv" # File with the data to construct the grid
+      # data_column: "ESTIMATE_WFH_ABLE" # Column with the data to construct the grid
+      # weight_column: "_" # Column with the weights for the data (not present in the data file)
       n_h: 70    # Number of s grid points
-      data_file: "data/results/wfh_estimates.csv" # File with the data to construct the grid
-      data_column: "ESTIMATE_WFH_ABLE" # Column with the data to construct the grid
-      weight_column: "_" # Column with the weights for the data (not present in the data file)
+      data_file: "data/results/skill_dist.csv" # File with the data to construct the grid
+      data_column: "SKILL_INDEX" # Column with the data to construct the grid
+      weight_column: "PCT_EMP" # Column with the weights for the data (not present in the data file)
     UtilityGrid:
       n_x: 100   # Number of x grid points
       x_min: 5   # Minimum x

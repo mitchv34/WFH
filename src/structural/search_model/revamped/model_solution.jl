@@ -6,6 +6,7 @@ Description: Functions for solving the labor market model.
 ==========================================================================================#
 # TODO: Add a description of the module
 module ModelSolution
+using Base.Threads # To check nthreads()
 
 using Parameters, LinearAlgebra, Term, Term.Progress
 using ..Types, ..ModelFunctions
@@ -83,46 +84,111 @@ function solveValueWorker!(prim::Primitives, res::Results; n_iter_max::Int64=500
     @unpack β, x_grid, ψ_grid, h_grid, b, matching_function = prim
     @unpack θ = res
 
-    if verbose println(@bold @blue "Solving worker value functions") end
-    
-    err = Inf
-    n_iter = 0
-    
-    W_new = similar(res.W)
-    U_old = copy(res.U)
-    
+    if verbose 
+        println(@bold @blue "Solving worker value functions") 
+        println(@bold @blue "Running with $(Threads.nthreads()) threads.")
+    end
+
+    start_time = time()  # Start timing
     # Create a function that evaluates the probability of finding a job
     p = θ -> eval_prob_job_find(matching_function, θ)
+    # --- MPI Parameters ---
+    max_iter_mpi = 200      
+    tol_mpi = 1e-7          
+    m = 10                  
 
-    while err > tol && n_iter < n_iter_max
-        # Update employed value function
-        for (i_ψ, ψ) in enumerate(ψ_grid.values)
-            δ = res.δ_grid[i_ψ, :, :]
-            W_new[i_ψ, :, :] = (x_grid.values' .+ β .* δ .* U_old ) ./ (1 .- β .* δ)
+    # --- Pre-allocate ---
+    W_eval = similar(res.W) 
+    U_eval = similar(res.U)
+    W_new_eval = similar(res.W) 
+    U_new_eval = similar(res.U)
+    new_policy = similar(res.x_policy)
+
+    for iter_mpi in 1:max_iter_mpi
+        
+        # Store old policy to check for convergence
+        current_policy = copy(res.x_policy) 
+        
+        # --- 1. Policy Evaluation Step (m iterations of VFI with fixed policy) ---
+        W_eval .= res.W # Start evaluation from previous iteration's values
+        U_eval .= res.U
+
+        for k in 1:m 
+            # --- Update W_eval based on U_eval (Parallelized over i_ψ) ---
+            Threads.@threads for i_ψ in 1:size(W_eval, 1) # Use 1:size instead of enumerate for @threads
+                δ_slice = view(res.δ_grid, i_ψ, :, :) # Use view for efficiency
+                W_eval_slice = view(W_eval, i_ψ, :, :)
+                W_new_eval_slice = view(W_new_eval, i_ψ, :, :)
+
+                # Each thread calculates its slice. Reads W_eval/U_eval, writes W_new_eval slice. Safe.
+                W_new_eval_slice .= x_grid.values' .+ β .* ( (1 .- δ_slice) .* W_eval_slice .+ δ_slice .* U_eval ) 
+            end # Implicit barrier: all threads finish W_new_eval before proceeding
+            
+            # --- Update U_eval based on W_new_eval (Parallelized over i_h, using FIXED policy) ---
+            Threads.@threads for i_h in 1:size(U_eval, 1) # Use 1:size instead of enumerate for @threads
+                # Get the action index from the CURRENT FIXED policy
+                x_idx = current_policy[i_h] 
+                
+                # Calculate EW only for the specific action x_idx
+                EW_slice_eval = view(W_new_eval, :, i_h, x_idx) 
+                EW_at_policy = sum(EW_slice_eval .* ψ_grid.pdf) # Sum over ψ dimension
+
+                # Calculate continuation value using the fixed policy action x_idx
+                p_at_policy = p(θ[i_h, x_idx]) 
+                continuation_value_at_policy = p_at_policy * EW_at_policy + (1 - p_at_policy) * U_eval[i_h] 
+                
+                # Each thread writes to its own U_new_eval[i_h]. Safe.
+                U_new_eval[i_h] = b + β * continuation_value_at_policy
+            end # Implicit barrier: all threads finish U_new_eval before proceeding
+
+            # Simple update (could add convergence check within evaluation too)
+            W_eval .= W_new_eval 
+            U_eval .= U_new_eval
+        end # End of k loop (inner evaluation iterations)
+
+        # --- 2. Policy Improvement Step (Parallelized over i_h) ---
+        Threads.@threads for i_h in 1:size(new_policy, 1)
+            # Calculate expected value of W across all possible next actions 'x'
+            EW_slice = view(W_eval, :, i_h, :) 
+            EW_all_x = vec(sum(EW_slice .* ψ_grid.pdf, dims=1)) # Sum over ψ, result is vector over x
+
+            # Calculate continuation values for all possible actions x
+            continuation_values = p.( θ[i_h, :] ) .* EW_all_x .+ ( 1 .- p.( θ[i_h, :] ) ) .* U_eval[i_h]
+            
+            # Find the best action index (policy improvement)
+            new_policy[i_h] = argmax(continuation_values) 
+        end # Implicit barrier: all threads finish policy improvement before proceeding
+
+        # --- Check for Convergence ---
+        if new_policy == current_policy
+            if verbose
+                println(@bold @green "Policy converged after $iter_mpi iterations.")
+            end
+            res.W .= W_eval # Store final values
+            res.U .= U_eval
+            res.x_policy .= new_policy
+            break
         end
         
-        # Compute expected worker value and update unemployed value
-        for (i_h, h) in enumerate(h_grid.values)
-            EW = dropdims( sum(W_new[:, i_h, :] .* ψ_grid.pdf, dims=1), dims=1)
-            continuation_values = p.( θ[i_h, :] ) .* EW .+ (1 .- p.( θ[i_h, :] ) ) .* U_old[i_h]
-            res.U[i_h] = b + β * maximum(continuation_values)
-            res.x_policy[i_h] = argmax(continuation_values)
+        # Update policy for the next iteration
+        res.x_policy .= new_policy
+        res.W .= W_eval 
+        res.U .= U_eval 
+
+        if iter_mpi == max_iter_mpi
+            println(@bold @green "MPI reached max iterations without policy convergence.")
         end
-        err = max(norm(W_new - res.W, Inf), norm(res.U - U_old, Inf))
-        res.W .= W_new
-        U_old .= res.U
-        n_iter += 1
 
-        if n_iter % 100 == 0 && verbose
-            println(@bold @yellow "Iteration: $n_iter, Error: $(round(err, digits=6))")
-        elseif err < tol && verbose
-            println(@bold @green "Iteration: $n_iter, Converged!")
-        end
+    end # End of iter_mpi loop
+
+    if verbose
+        elapsed_time = time() - start_time
+        println(@bold @green "Worker value functions solved in $(elapsed_time) seconds.")
     end
+    #> Potential Further Optimizations:
+    # TODO: Pre-calculating p.(θ): If p and θ don't change, p_theta = p.(θ) and one_minus_p_theta = 1 .- p_theta could be computed once outside all loops.
+    # TODO: Optimizing sum: Ensure the sum(EW_slice .* ψ_grid.pdf) is efficient. If ψ_grid.pdf can be represented correctly, matrix multiplication might be faster for the EW_all_x calculation (W_eval_reshaped * ψ_grid.pdf or similar), though this requires careful reshaping. Packages like LoopVectorization.jl (@turbo macro) could potentially speed up these loops further, but test carefully as it might conflict with @threads.
+    # TODO: Allocation Profiling: After adding threads, run the profiler again (@profile) to see if any unexpected allocations are occurring within the threaded loops.
+end
+end 
 
-    if n_iter >= n_iter_max && verbose
-        println(@bold @red "Worker value functions did not converge within $n_iter_max iterations.")
-    end
-end #
-
-end# module ModelSolution

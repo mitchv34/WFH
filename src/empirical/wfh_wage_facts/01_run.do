@@ -51,8 +51,8 @@ global dem_list = "2"
 // *******************************************************
 // * Load and Clean the Data
 // *******************************************************
-import delimited "$path_data/acs_136_processed.csv", clear
-do "$path_code/02_basic_cleaning.do"
+//import delimited "$path_data/acs_136_processed.csv", clear
+//do "$path_code/02_basic_cleaning.do"
 
 // *******************************************************
 // * Regression of wage on remote work
@@ -79,13 +79,16 @@ global add_fn = "Teleindex_ext_skill_occfe"
 
 global occup_var = "occsoc_minor"
 
-local occ_level = "occsoc_detailed"
+global occ_level = "occsoc_detailed"
+local occ_level = "$occ_level" 
 
 // * Run table summary for the project
 global main_x1 = "teleworkable_`occ_level'"
 global main_x2 = "teleworkable_`occ_level' wfh_cat"
 global main_x3 = "teleworkable_`occ_level' skill_cognitive_`occ_level' skill_mechanical_`occ_level' skill_social_`occ_level'"
 global main_x4 = "teleworkable_`occ_level' wfh_cat skill_cognitive_`occ_level' skill_mechanical_`occ_level' skill_social_`occ_level'"
+
+global keep = "wfh_cat teleworkable_occsoc_detailed skill_cognitive_`occ_level' skill_mechanical_`occ_level' skill_social_`occ_level'"
 
 global fe_list = "7 6"
 global dem_list = "2"

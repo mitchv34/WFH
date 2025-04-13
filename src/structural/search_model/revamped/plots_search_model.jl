@@ -40,6 +40,7 @@ mutable struct ModelPlotCollection
     job_finding_prob::Union{Figure, Nothing}
     worker_search_policy::Union{Figure, Nothing}
     wage_and_remote::Union{Figure, Nothing}
+    worker_type_distribution::Union{Figure, Nothing}
     
     # Constructor with default nothing values
     function ModelPlotCollection(output_dir::String="figures/model_figures/")
@@ -48,7 +49,7 @@ mutable struct ModelPlotCollection
         
         return new(
             output_dir,
-            nothing, nothing, nothing, nothing, nothing, nothing
+            nothing, nothing, nothing, nothing, nothing, nothing, nothing
         )
     end
 end
@@ -184,7 +185,7 @@ function plot_remote_thresholds_by_worker_skill(prim::Primitives, res::Results; 
         )
         
         Legend(fig[1, 2], ax, title="Policy", width=180, box=:off, framevisible=false, labelsize=FONT_SIZE * 0.9)
-    end
+    endanalyze_thresholds(prim)
     
     # Plot the remote work efficiency thresholds
     ## Top threshold (ψ_top)
@@ -318,6 +319,44 @@ function plot_wage_and_remote(prim::Primitives, res::Results)
     return fig
 end
 
+function plot_worker_type_distribution(prim::Primitives)
+    fig = create_figure()
+    ax = create_axis(fig[1, 1], "Distribution of Worker Skills", "Worker Skill (h)", "Density")
+    
+    h_values = prim.h_grid.values
+    
+    # Check if h_grid has a pdf field
+    if isdefined(prim.h_grid, :pdf)
+        # If pdf is a function, evaluate it on h_grid values
+        if prim.h_grid.pdf isa Function
+            pdf_values = prim.h_grid.pdf.(h_values)
+            lines!(ax, h_values, pdf_values, color=COLORS[1], linewidth=4, label="")
+            
+        # If pdf is a vector (pre-computed weights)
+        elseif prim.h_grid.pdf isa AbstractVector
+            # Normalize the weights if they don't sum to 1
+            weights = prim.h_grid.pdf ./ sum(prim.h_grid.pdf)
+            
+            # # Stem plot for discrete weights
+            # stem!(ax, h_values, weights, color=COLORS[1], linewidth=2, marker=:circle, markersize=8, label="")
+
+            # Also draw a line connecting the points for better visibility
+            lines!(ax, h_values, weights, color=COLORS[1], linewidth=4, label="")
+        end
+    end
+    
+    # Set the limits of the x-axis
+    xlims!(ax, h_values[1] - 0.1, h_values[end] + 0.1)
+    ylims!(ax, 0, nothing)  # Start y-axis at 0
+    
+    # Set custom x-ticks
+    ax.xticks = ([h_values[1], h_values[end]], 
+                [latexstring("h_{\\min} = $(round(h_values[1], digits=2))"),
+                latexstring("h_{\\max} = $(round(h_values[end], digits=2))")])
+    
+    return fig
+end
+
 # Function to create all plots
 function create_all_plots!(plots::Union{ModelPlotCollection, String}, prim::Primitives, res::Results; verbose::Bool=true)
     if verbose println(@bold @blue "Creating model plots...") end
@@ -336,6 +375,7 @@ function create_all_plots!(plots::Union{ModelPlotCollection, String}, prim::Prim
     plots.job_finding_prob = plot_job_finding_prob(prim, res)
     plots.worker_search_policy = plot_worker_search_policy(prim, res)
     plots.wage_and_remote = plot_wage_and_remote(prim, res)
+    plots.worker_type_distribution = plot_worker_type_distribution(prim)
     
     if verbose println(@bold @blue "All plots created successfully.") end
     

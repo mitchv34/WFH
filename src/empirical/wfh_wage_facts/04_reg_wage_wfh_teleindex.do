@@ -57,7 +57,11 @@ label var educd "Education"
 label var age "Age"
 label var age2 "Age^2"
 label var race "Race"
-label var teleworkable_occsoc_detailed "Tele Index"
+label var teleworkable_occsoc_detailed "Teleworkable"
+label var skill_cognitive_$occ_level "Cognitive"
+label var skill_mechanical_$occ_level "Mechanical"
+label var skill_social_$occ_level "Social"
+
 
 // ************************************************************************
 // * Run regressions
@@ -115,7 +119,7 @@ esttab `reg_list' using "$path_tables/`filename'.tex", replace ///
     se star(* 0.1 ** 0.05 *** 0.001) ///
     label ///
     nomtitles ///
-    keep(wfh_cat teleworkable_occsoc_detailed) ///
+    keep($keep) ///
     stats(N r2) ///
     title("Wage = f(WFH, X, FE)") ///
     addnotes("Occupation: `occup_var', yvar: `y_var', xvar: `main_x', cluster: `cluster_type'") ///

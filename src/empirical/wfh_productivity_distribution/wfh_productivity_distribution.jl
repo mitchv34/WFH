@@ -1,4 +1,9 @@
 # Config
+import Term: install_term_stacktrace
+
+using Term
+install_term_stacktrace()
+
 ## DataPaths
 struct DataPaths
     wfh_estimates::String
@@ -9,6 +14,8 @@ struct DataPaths
     onet_soc_xwalk::String
     onet_skills::String
     onet_abilities::String
+    # TODO: Clean
+    # skill_vectors::String
 end
 
 # Populate DataPaths    
@@ -35,7 +42,8 @@ function define_paths()
         # Skill data
         joinpath(base_path, "onet_data/processed/measure/ABILITIES.csv"),
         joinpath(base_path, "onet_data/processed/measure/SKILLS.csv")
-        
+        # TODO: Clean
+        # "/project/high_tech_ind/WFH/WFH/data/results/skill_vectors.csv"
     )
 end
 
@@ -48,6 +56,8 @@ module DataLoader
     function load_datasets(paths)
         wfh_share_estimation = CSV.read(paths.wfh_estimates, DataFrame)
         bls = CSV.read(paths.bls, DataFrame)
+        # TODO : Clean
+        # onet_skill = CSV.read(paths.skill_vectors, DataFrame)
         onet_skill = load_and_process_onet_data(paths.onet_skills, paths.onet_abilities)
         return wfh_share_estimation, bls, onet_skill
     end
@@ -83,8 +93,10 @@ module DataLoader
     end
 
     function load_bds_data()
-        bds_url = "https://www2.census.gov/programs-surveys/bds/tables/time-series/2022/bds2022_vcn3.csv"
-        bds_3d = CSV.read(Downloads.download(bds_url), DataFrame; types=Dict("vcnaics3"=>String))
+        # bds_url = "https://www2.census.gov/programs-surveys/bds/tables/time-series/2022/bds2022_vcn3.csv"
+        # bds_3d = CSV.read(Downloads.download(bds_url), DataFrame; types=Dict("vcnaics3"=>String))
+        path = "/project/high_tech_ind/WFH/WFH/data/raw/bds/BDS 2022 VCN3.csv"
+        bds_3d = CSV.read(path, DataFrame; types=Dict("vcnaics3"=>String))
         rename!(bds_3d, "vcnaics3" => "NAICS")
         return bds_3d
     end
@@ -93,6 +105,7 @@ module DataLoader
         return CSV.read(path, DataFrame)
     end
 
+    # TODO: Clean
     function load_and_process_onet_data(path_skills, path_abilities)
         skills = CSV.read(path_skills, DataFrame)
         abilities = CSV.read(path_abilities, DataFrame)
@@ -166,8 +179,12 @@ module DataProcessor
 
     function create_wfh_skill_map(wfh_share_estimation, skill_data, onet_soc_xwalk)
         # Join WFH estimates with occupation crosswalk
+        # @show first(wfh_share_estimation, 5)
+        # @show first(skill_data, 5)
+        # @show first(onet_soc_xwalk, 5)
+        # TODO: Clean
         wfh_occ = leftjoin(
-            wfh_share_estimation, 
+            wfh_share_estimation[!, [:ONET_SOC_CODE, :ESTIMATE_WFH_ABLE] ], 
             onet_soc_xwalk[:, ["ONET_SOC_CODE", "OCC_CODE"]], 
             on="ONET_SOC_CODE"
         )
@@ -581,6 +598,8 @@ end
 # Load data
 paths = define_paths();
 wfh_share_estimation, bls, onet_skill = DataLoader.load_datasets(paths);
+# onet_skill[!, :SKILL_INDEX] .= onet_skill[!, :cognitive]
+# onet_skill = onet_skill[!, [:ONET_SOC_CODE, :SKILL_INDEX]]
 bls_ind_3d, bls_ind_4d = DataLoader.process_bls_data(bls);
 productivity_3d, productivity_4d = DataLoader.load_productivity_data(paths);
 wfh_rates = DataLoader.load_wfh_data(paths.wfh_rates);
@@ -596,23 +615,38 @@ regression_data = DataProcessor.prepare_regression_data(productivity_3d, telewor
 models_unweighted, models_weighted = Models.fit_regression_models(regression_data);
 
 # # Get coefficients
-A, ψ₀, _, ϕ = Models.calculate_model_parameters( models_unweighted.base );
-using YAML
-open("/project/high_tech_ind/WFH/WFH/src/structural/search_model/parameters copy.yaml", "w") do io
-    YAML.dump(io,
-        Dict(
-            "A" => round(A, digits=2), 
-            "psi_0" => round(ψ₀, digits=2), 
-            "phi" => round(ϕ, digits=2)
-            )
-        )
-end
+A, ψ₀, _, ϕ = Models.calculate_model_parameters( models_unweighted.base )
+
+# Load /project/high_tech_ind/WFH/WFH/data/processed/bls/oews/oews_all_2023.csv
+using CSV, DataFrames, StatsBase
+owes = CSV.read(paths.bls, DataFrame)
+owes_us_cross_ind_detailed = filter(row -> row.AREA_TITLE == "U.S." && row.NAICS_TITLE == "Cross-industry" && row.O_GROUP == "detailed", owes)
+# Keep only US-Cross Industry-Detailed Occupation level data 
+owes_us_cross_ind_detailed = owes_us_cross_ind_detailed[!, [:OCC_CODE, :TOT_EMP]]
+# Convert :TOT_EMP to Float64 (parse any string as nan)
+owes_us_cross_ind_detailed.TOT_EMP = [tryparse(Float64, string(x)) === nothing ? missing : tryparse(Float64, string(x)) for x in owes_us_cross_ind_detailed.TOT_EMP]
+# Add OCC_CODE to onet_skill using onet_soc_xwalk
+onet_skill = innerjoin(onet_skill, onet_soc_xwalk[!, [:ONET_SOC_CODE, :OCC_CODE]], on=:ONET_SOC_CODE)
+# Groupby onet_skill by OCC_CODE and average the  SKILL_INDEX
+skill_by_occupation = combine(groupby(onet_skill, :OCC_CODE), :SKILL_INDEX => mean => :SKILL_INDEX)
+# Add the SKILL_INDEX to the owes_us_cross_ind_detailed
+owes_us_cross_ind_detailed = leftjoin(owes_us_cross_ind_detailed, skill_by_occupation, on=:OCC_CODE)
+# Print a list of codes with missing skill index
+missing_skill_codes = filter(row -> ismissing(row.SKILL_INDEX), owes_us_cross_ind_detailed);
+println("Codes with missing skill index:")
+println(missing_skill_codes[!, :OCC_CODE])
+# Calculate and print the percentage of employment with missing skill index
+missing_emp_pct = sum(skipmissing(missing_skill_codes.TOT_EMP)) / sum(skipmissing(owes_us_cross_ind_detailed.TOT_EMP)) * 100;
+println("Percentage of employment with missing skill index: $(round(missing_emp_pct, digits=2))%")
+# Drop missing values
+owes_us_cross_ind_detailed = dropmissing(owes_us_cross_ind_detailed, [:SKILL_INDEX])
+# Compute percentage of total employment
+owes_us_cross_ind_detailed[!, :PCT_EMP] = owes_us_cross_ind_detailed.TOT_EMP ./ sum(skipmissing(owes_us_cross_ind_detailed.TOT_EMP))
+# Save to /project/high_tech_ind/WFH/WFH/data/results/skill_dist.csv
+CSV.write("/project/high_tech_ind/WFH/WFH/data/results/skill_dist.csv", owes_us_cross_ind_detailed)
 
 
-using StatsBase
-
-using CairoMakie
-
+using StatsBase, CairoMakie, DataFrames
 
 onet_skill = innerjoin(onet_skill, onet_soc_xwalk[!, [:ONET_SOC_CODE, :OCC_CODE]], on=:ONET_SOC_CODE)
 # Group by OCC_CODE and calculate the mean of SKILL_INDEX
@@ -714,7 +748,4 @@ x_range = range(minimum(onet_skill.SKILL_INDEX), maximum(onet_skill.SKILL_INDEX)
 pdf_normal = pdf(normal_dist, x_range)
 # plot the normal distribution
 lines!(ax, x_range, pdf_normal, color = :red, linewidth = 3, label = "Fitted Normal")
-
-
-
 fig

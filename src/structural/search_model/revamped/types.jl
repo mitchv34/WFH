@@ -16,6 +16,7 @@ module Types
     import ..ModelFunctions: MatchingFunction, ProductionFunction, UtilityFunction
     # Export the data structures and initialization functions
     export Primitives, Results, Worker, Economy, initializeModel, initializeEconomy
+    export create_primitives_from_yaml, initializeResults
     #?=========================================================================================
     #? Model Data Structures
     #?=========================================================================================
@@ -50,7 +51,7 @@ module Types
             - `ψ_pdf` must be a probability distribution with non-negative values and sum to 1.
             - `h_pdf` must be a probability distribution with non-negative values and sum to 1.
     ==========================================================================================#
-    @with_kw struct Grid
+    @with_kw mutable struct Grid
         n::Int64                                  # Number of grid points
         min::Float64                              # Minimum value
         max::Float64                              # Maximum value
@@ -90,7 +91,7 @@ module Types
             new(n, min, max, values, pdf, cdf)
         end
     end
-    @with_kw struct Primitives   
+    @with_kw mutable struct Primitives   
         #> Model functions
         matching_function::MatchingFunction
         production_function::ProductionFunction
@@ -310,14 +311,22 @@ module Types
         # Construct grid object
         ψ_grid = Grid(ψ_grid, pdf=ψ_pdf, cdf=ψ_cdf)
         #* Skill grid
-        h_grid, h_pdf, h_cdf = fit_distribution_to_data(
-                                    h_data,                 # Path to skill data 
-                                    h_column,               # Which column to use
-                                    "functions",            # Will I be returning a vector of values of functions that can be evaluated
-                                    "parametric";           # Parametric or non-Parametric estimation
-                                    distribution=Normal,    # If Parametric which distribution?
-                                    num_grid_points=n_h     # Number of grid points to fit the distribution
-                                )
+        #TODO: Revise that the non-paramteric estimation is workign properly
+        h_grid, h_pdf, h_cdf = fit_kde_psi(
+                                            h_data,
+                                            h_column,
+                                            weights_col = h_weight, 
+                                            num_grid_points=n_h,
+                                            engine="python"
+                                            ) 
+        # h_grid, h_pdf, h_cdf = fit_distribution_to_data(
+        #                             h_data,                 # Path to skill data 
+        #                             h_column,               # Which column to use
+        #                             "functions",            # Will I be returning a vector of values of functions that can be evaluated
+        #                             "parametric";           # Parametric or non-Parametric estimation
+        #                             distribution=Normal,    # If Parametric which distribution?
+        #                             num_grid_points=n_h     # Number of grid points to fit the distribution
+        #                         )
         # Construct grid object
         #if the minimum skill value h_min ≤ 0 set it to a small positive value to avoid issues with the log function
         if h_grid[1] <= 0
@@ -402,7 +411,7 @@ module Types
         δ_grid = prim.δ_bar .* ones(n_ψ, n_h, n_x)
         W = zeros(n_ψ, n_h, n_x)
         U = zeros(n_h)
-        x_policy = zeros(Int, n_h)
+        x_policy = ones(Int, n_h)
         #* Calculate remote work thresholds and optimal policy based on model functions
         ψ_bottom, ψ_top, α_policy = find_thresholds_and_optimal_remote_policy(prim)
         #* Compute optimal wage policy based on model functions and optimal remote policy
