@@ -21,6 +21,11 @@ author:
         url: https://econ.wisc.edu/
 abstract: >
     Et commodo tempor aute in in occaecat id consequat ullamco dolore cupidatat minim ullamco. Et id cillum minim dolore eu in mollit nulla et enim velit cupidatat. Cillum magna minim incididunt sint ipsum commodo officia sunt culpa. Est veniam nulla est laboris amet nisi est adipisicing sit excepteur dolor. Consequat non duis aliquip exercitation culpa irure incididunt velit sunt elit excepteur.
+bibliography: ../notes/literature/Remote Work Project.bib
+bibliographystyle: chicago-fullnote
+crossref:
+  appendix-title: "Appendix"
+  appendix-delim: "."
 format: 
   pdf:
     toc: true
@@ -54,7 +59,7 @@ editor:
 
 
 ## Model
-
+<!-- Section including the theoretical model of remote work -->
 {{< include "../notes/model/Model.md" >}}
 
 ## Empirical Analysis
@@ -63,5 +68,24 @@ editor:
 
 ## Conclusion
 
+## References {.unnumbered}
+<!-- Bibliography -->
+::: {#refs}
+:::
 
-## References
+\newpage
+
+\setcounter{section}{0}
+\renewcommand{\thesection}{\Alph{section}}
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{A\arabic{table}}
+
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{A\arabic{figure}}
+
+## Appendix
+<!-- Section including additional material or supplementary information -->
+<!-- Derivation of the Optimal Remote Work Policy for the General Case -->
+{{< include "../notes/model/Optimal Remote Policy (General Functional Forms).md" >}}
+{{< include "../notes/model/Proposition (General Functional Forms).md" >}}

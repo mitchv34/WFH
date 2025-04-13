@@ -70,3 +70,29 @@ Let's calculate $M(0)$ and $M(1)$:
 $$M(0) = -\frac{c_0 \chi (1-0)^{\chi-1}}{a_1}=-\frac{c_0 \chi}{a_1}$$
 $$M(1) = -\frac{c_0 \chi (1-1)^{\chi-1}}{a_1} = 0$$this implies that:$$ g(\underline{\psi}(h),h) = 1 - \frac{c_0 \chi}{a_1 A(h)} \quad \implies \quad \underline{\psi}(h) = 1 + \psi_0 - \psi\log(h)- \frac{c_0 \chi}{a_1 A(h)}$$and
 $$ g(\overline{\psi}(h),h) = 1 \quad \implies \quad \underline{\psi}(h) = 1 + \psi_0 - \psi\log(h)$$
+---
+Okay, here is a summary of the conditions determining the monotonicity of the thresholds $\overline{\psi}(h)$ and $\underline{\psi}(h)$ with respect to $h$, under the assumptions:
+$h>0$, $A_1>0$, $a_1>0$, $\chi>1$, $c_0>0$, $A_0 \ge 0$, $\phi \ge 0$.
+
+**1. Upper Threshold $\overline{\psi}(h) = 1 + \psi_0 - \phi \log(h)$**
+
+*   **If $\phi = 0$**: $\overline{\psi}(h)$ is **constant**.
+*   **If $\phi > 0$**: $\overline{\psi}(h)$ is **strictly decreasing** for all $h>0$.
+
+**2. Lower Threshold $\underline{\psi}(h) = 1 + \psi_0 - \phi \log(h) - \frac{c_0 \chi}{a_1 (A_0 + A_1 h)}$**
+
+*   **If $\phi = 0$**: $\underline{\psi}(h)$ is **strictly increasing** for all $h>0$.
+*   **If $\phi > 0$**:
+    *   **Case (i): $A_0 = 0$**
+        *   $\underline{\psi}(h)$ is **strictly increasing** on $(0, h_2)$.
+        *   $\underline{\psi}(h)$ is **strictly decreasing** on $(h_2, \infty)$.
+        *   (Local maximum at $h_2 = \frac{c_0 \chi}{\phi a_1 A_1}$)
+    *   **Case (ii): $A_0 > 0$**
+        *   **Subcase (a): $c_0 \chi \le 4 \phi a_1 A_0$**
+            *   $\underline{\psi}(h)$ is **strictly decreasing** for all $h>0$.
+            *   (If $c_0 \chi = 4 \phi a_1 A_0$, there is a stationary inflection point at $h = A_0/A_1$).
+        *   **Subcase (b): $c_0 \chi > 4 \phi a_1 A_0$**
+            *   $\underline{\psi}(h)$ is **strictly decreasing** on $(0, h_1)$.
+            *   $\underline{\psi}(h)$ is **strictly increasing** on $(h_1, h_2)$.
+            *   $\underline{\psi}(h)$ is **strictly decreasing** on $(h_2, \infty)$.
+            *   (Local minimum at $h_1$, local maximum at $h_2$, where $h_{1,2} = \frac{(c_0 \chi - 2 \phi a_1 A_0) \pm \sqrt{c_0 \chi ( c_0 \chi - 4 \phi a_1 A_0 )}}{2 \phi a_1 A_1}$ are the two positive roots).
