@@ -70,8 +70,9 @@ Let's calculate $M(0)$ and $M(1)$:
 $$M(0) = -\frac{c_0 \chi (1-0)^{\chi-1}}{a_1}=-\frac{c_0 \chi}{a_1}$$
 $$M(1) = -\frac{c_0 \chi (1-1)^{\chi-1}}{a_1} = 0$$this implies that:$$ g(\underline{\psi}(h),h) = 1 - \frac{c_0 \chi}{a_1 A(h)} \quad \implies \quad \underline{\psi}(h) = 1 + \psi_0 - \psi\log(h)- \frac{c_0 \chi}{a_1 A(h)}$$and
 $$ g(\overline{\psi}(h),h) = 1 \quad \implies \quad \underline{\psi}(h) = 1 + \psi_0 - \psi\log(h)$$
+
 ---
-Okay, here is a summary of the conditions determining the monotonicity of the thresholds $\overline{\psi}(h)$ and $\underline{\psi}(h)$ with respect to $h$, under the assumptions:
+Conditions determining the monotonicity of the thresholds $\overline{\psi}(h)$ and $\underline{\psi}(h)$ with respect to $h$, under the assumptions:
 $h>0$, $A_1>0$, $a_1>0$, $\chi>1$, $c_0>0$, $A_0 \ge 0$, $\phi \ge 0$.
 
 **1. Upper Threshold $\overline{\psi}(h) = 1 + \psi_0 - \phi \log(h)$**

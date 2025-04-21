@@ -30,7 +30,7 @@ from sklearn.inspection import permutation_importance
 
 DATA_DIR_ORS = 'data/proc/ors/'
 DATA_DIR_ONET = 'data/onet_data/processed/measure/'
-DATA_DIR_ONET_REFERENCE = "/project7/high_tech_ind/WFH/WFH/data/onet_data/processed/reference/"
+DATA_DIR_ONET_REFERENCE = 'data/onet_data/processed/reference/'
 
 # %%
 #?=========================================================================================

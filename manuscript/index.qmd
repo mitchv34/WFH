@@ -1,5 +1,5 @@
 ---
-title: "JMP"
+title: "The Value of Flexibility: Teleworkability, Sorting, and the Work‑From‑Home Wage Gap"
 date: last-modified	
 date-format: long
 author: 
@@ -19,8 +19,9 @@ author:
         city: Madison
         state: WI
         url: https://econ.wisc.edu/
+resource-path: [".."]
 abstract: >
-    Et commodo tempor aute in in occaecat id consequat ullamco dolore cupidatat minim ullamco. Et id cillum minim dolore eu in mollit nulla et enim velit cupidatat. Cillum magna minim incididunt sint ipsum commodo officia sunt culpa. Est veniam nulla est laboris amet nisi est adipisicing sit excepteur dolor. Consequat non duis aliquip exercitation culpa irure incididunt velit sunt elit excepteur.
+    Remote workers consistently earn higher wages than their on-site counterparts, a premium that persists even within detailed occupations and has evolved over time. We document these stylized facts using ACS, O*NET, and BLS data, constructing a novel occupation-level teleworkability index via machine learning. To understand these patterns, we develop a directed search model where workers (heterogeneous in skill) search for jobs which they value by the offered bundle of remote flexibility and wage, and firms (heterogeneous in remote work efficiency) optimally choose this bundles to post vacancies different submarkets. We estimate production function parameters and key distributions using industry-level data and calibrate remaining parameters. The model generates endogenous sorting, matching high-skill workers with high-remote-efficiency firms offering greater utility, including higher wages and more remote work. Our framework provides a structural explanation for the WFH premium driven by sorting and heterogeneity in firm remote work capabilities.
 bibliography: ../notes/literature/Remote Work Project.bib
 bibliographystyle: chicago-fullnote
 crossref:
@@ -28,9 +29,10 @@ crossref:
   appendix-delim: "."
 format: 
   pdf:
-    toc: true
+    keep-tex: true
+    toc: false
     number-sections: true
-    fontsize: 12pt
+    fontsize: 11pt
     fontfamily: lmodern
     geometry:
       - margin=1in
@@ -43,9 +45,16 @@ format:
         \usepackage{amsmath}
         \usepackage{amsthm}
         \usepackage{amssymb}
+        \usepackage{amsfonts} 
         \usepackage{booktabs}
         \usepackage{setspace}
         \usepackage{graphicx}
+        \usepackage{algorithm}
+        \usepackage[noend]{algpseudocode}
+        % Define math operators if needed
+        \DeclareMathOperator*{\argmax}{arg\,max}
+        \DeclareMathOperator*{\Exp}{\mathbb{E}} % Expectation operator
+        \newcommand{\sym}[1]{\ensuremath{^{#1}}}
 fig-dpi: 320
 editor:
     render-on-save: true
@@ -53,21 +62,41 @@ editor:
 
 
 ## Introduction
+{{< include "../notes/1_intro.md" >}}
+
+## Empirical Motivation: Remote Work, Wages, and Skills
+{{< include "../notes/2_empirical_motivation.md" >}}
 
 
 
-## Literature Review
-
-
-## Model
 <!-- Section including the theoretical model of remote work -->
-{{< include "../notes/model/Model.md" >}}
+## Model
+<!-- Overview of the model -->
+{{< include "../notes/model/3_model_3.1_model_overview.md" >}}
+<!-- Optimal Remote Work Policy and Particular Functional Form Example -->
+{{< include "../notes/model/3.2_model_optimal_remote_work.md" >}}
+<!-- Search Model with Remote Work -->
+<!-- {{< include "../notes/model/3.3_labor_market_search.md" >}} -->
+{{< include "../notes/model/3.3_labor_market_search_endogenous_firm_distribution.md" >}}
 
-## Empirical Analysis
+
+## Calibration
+{{< include "../notes/model/4_estimation.md" >}}
 
 ## Results
+{{< include "../notes/model/5_results.md" >}}
 
 ## Conclusion
+This paper investigates the persistent wage premium observed for remote workers in the United States. We begin by documenting key empirical facts using ACS, O\*NET, and BLS data: remote workers are positively selected on earnings and education, occupations suitable for remote work command higher wages, a significant WFH premium exists even within detailed occupations, and this premium has evolved over time, increasing notably since the COVID-19 pandemic. These findings motivate our central question: what drives the wage gap between remote and non-remote employees?
+
+To explore potential mechanisms beyond observable characteristics, we developed a directed search model featuring heterogeneity in worker skill and firm remote work efficiency. In our framework, firms strategically post utility offers (bundles of wages and remote work to attract specific worker types, incurring utility-dependent posting costs.
+
+Workers direct their search towards utility offers that maximize their expected value. Firms make probabilistic choices over which submarket to enter, leading to endogenous sorting.
+
+We estimate key production function parameters and distributions using industry-level data and calibrate the remaining parameters. Simulating the calibrated model reveals that it successfully generates positive assortative matching: higher-skilled workers target and match with higher-efficiency firms offering greater utility. Crucially, these higher utility packages optimally bundle both higher wages and a greater share of remote work for high-skill workers matched with high-efficiency firms.
+
+Our results provide a structural explanation for the WFH premium, attributing it significantly to sorting dynamics and heterogeneity in firms' ability to effectively implement remote work. The model demonstrates how competition for high-skill workers leads efficient firms to offer attractive packages where remote work acts partially as an amenity but is also bundled with higher wages reflecting the value generated in these high-productivity matches. The framework highlights that understanding the WFH premium requires considering not just worker preferences or average productivity effects, but also the equilibrium sorting outcomes driven by firm-level heterogeneity in remote work capabilities and the costs associated with different contract offers. Future work could further explore the role of worker preferences and dynamic considerations like on-the-job search.
+
 
 ## References {.unnumbered}
 <!-- Bibliography -->
@@ -90,3 +119,4 @@ editor:
 <!-- Derivation of the Optimal Remote Work Policy for the General Case -->
 {{< include "../notes/model/Optimal Remote Policy (General Functional Forms).md" >}}
 {{< include "../notes/model/Proposition (General Functional Forms).md" >}}
+{{< include "../notes/model/appendix_algorithm_firm_dist_latex.md" >}}
